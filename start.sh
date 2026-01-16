@@ -28,6 +28,10 @@ else
     DASHBOARD_URL="http://localhost:6791"
 fi
 
+# Pull latest images quietly (ignore errors for local images)
+echo "📦 Pulling latest Docker images..."
+docker compose -f docker-compose.convex.yml --env-file .env.docker pull --quiet 2>/dev/null || true
+
 # Start Convex backend with Docker Compose
 # Docker Compose will automatically load .env.convex.local
 echo "📦 Starting Convex backend..."

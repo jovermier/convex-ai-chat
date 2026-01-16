@@ -22,7 +22,7 @@ if [ -n "$CODER" ] && [ -n "$CODER_WORKSPACE_NAME" ]; then
     # Format: <protocol>://<service>--<workspace>--<owner>.<coder-domain>
     # Example: https://convex-api--convex-ai-chat--jovermier.coder.hahomelabs.com
     CONVEX_API_URL="${CODER_PROTOCOL}://convex-api--${WORKSPACE_NAME}--${USERNAME}.${CODER_DOMAIN}"
-    CONVEX_PROXY_URL="${CODER_PROTOCOL}://convex-proxy--${WORKSPACE_NAME}--${USERNAME}.${CODER_DOMAIN}"
+    CONVEX_PROXY_URL="${CODER_PROTOCOL}://convex-auth-proxy--${WORKSPACE_NAME}--${USERNAME}.${CODER_DOMAIN}"
     CONVEX_DASHBOARD_URL="${CODER_PROTOCOL}://convex--${WORKSPACE_NAME}--${USERNAME}.${CODER_DOMAIN}"
 
     echo "🖥️  Coder workspace detected"
@@ -45,7 +45,7 @@ fi
 
 # Set default URLs if not already defined (use Coder-generated URLs if available)
 CONVEX_CLOUD_ORIGIN="${CONVEX_CLOUD_ORIGIN:-${CONVEX_API_URL:-http://localhost:3210}}"
-CONVEX_SITE_ORIGIN="${CONVEX_SITE_ORIGIN:-${CONVEX_PROXY_URL:-http://localhost:3211}}"
+CONVEX_SITE_ORIGIN="${CONVEX_SITE_ORIGIN:-${CONVEX_PROXY_URL:-http://localhost:3212}}"
 CONVEX_SITE_URL="${CONVEX_SITE_URL:-${CONVEX_PROXY_URL:-http://localhost:3210}}"
 CONVEX_DEPLOYMENT_URL="${CONVEX_DEPLOYMENT_URL:-${CONVEX_API_URL:-http://localhost:3210}}"
 export CONVEX_CLOUD_ORIGIN CONVEX_SITE_ORIGIN CONVEX_SITE_URL CONVEX_DEPLOYMENT_URL
@@ -83,7 +83,7 @@ echo "✅ Convex services are running!"
 echo ""
 echo "📍 Service URLs:"
 echo "   - Convex API:     ${CONVEX_CLOUD_ORIGIN:-http://localhost:3210}"
-echo "   - Convex Proxy:   ${CONVEX_SITE_ORIGIN:-http://localhost:3211}"
+echo "   - Convex Proxy:   ${CONVEX_SITE_ORIGIN:-http://localhost:3212}"
 echo "   - Dashboard:      ${CONVEX_DASHBOARD_URL:-http://localhost:6791}"
 echo ""
 

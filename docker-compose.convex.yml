@@ -15,7 +15,7 @@ services:
     stop_signal: SIGINT
     ports:
       - "3210:3210" # Convex API port
-      - "3211:3211" # Convex site proxy port
+      - "3212:3212" # Convex site proxy port
     volumes:
       - convex-data:/convex/data
       - ./docker-entrypoint.sh:/docker-entrypoint.sh:ro
@@ -27,7 +27,7 @@ services:
       # For local development, defaults to http://localhost:3210
       - CONVEX_CLOUD_ORIGIN=${CONVEX_CLOUD_ORIGIN:-http://localhost:3210}
       # Convex Site Origin - HTTP actions endpoint
-      - CONVEX_SITE_ORIGIN=${CONVEX_SITE_ORIGIN:-http://localhost:3211}
+      - CONVEX_SITE_ORIGIN=${CONVEX_SITE_ORIGIN:-http://localhost:3212}
       # PostgreSQL Database URL (required)
       - POSTGRES_URL=${POSTGRES_URL}
       # Instance name for identification (matches PostgreSQL database name)

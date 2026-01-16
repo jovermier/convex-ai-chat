@@ -30,10 +30,10 @@ fi
 
 # Pull latest images quietly (ignore errors for local images)
 echo "📦 Pulling latest Docker images..."
-docker compose -f docker-compose.convex.yml --env-file .env.docker pull --quiet 2>/dev/null || true
+docker compose -f docker-compose.convex.yml pull --quiet 2>/dev/null || true
 
 # Start Convex backend with Docker Compose
-# Docker Compose will automatically load .env.convex.local
+# Load environment variables from .env.convex.local
 echo "📦 Starting Convex backend..."
 docker compose -f docker-compose.convex.yml up -d convex-backend convex-dashboard
 
@@ -45,6 +45,72 @@ timeout 60 bash -c 'until docker compose -f docker-compose.convex.yml ps 2>/dev/
 }
 
 echo "✅ Convex backend is healthy"
+
+# Generate or validate admin key
+echo "🔑 Checking admin key..."
+CURRENT_KEY=$(grep "^CONVEX_SELF_HOSTED_ADMIN_KEY=" .env.local 2>/dev/null | cut -d'=' -f2 | tr -d '"')
+
+# Test if current key works by trying a simple API call
+if [ -n "$CURRENT_KEY" ]; then
+    HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+        -H "Content-Type: application/json" \
+        -H "Authorization: Convex $CURRENT_KEY" \
+        "$BACKEND_URL/api/deploy2/evaluate_push" 2>/dev/null || echo "000")
+
+    if [ "$HTTP_CODE" = "401" ] || [ "$HTTP_CODE" = "000" ]; then
+        echo "  ⚠️  Existing admin key is invalid or expired"
+        CURRENT_KEY=""
+    fi
+fi
+
+# Generate new admin key if needed
+if [ -z "$CURRENT_KEY" ]; then
+    echo "  🔑 Generating new admin key..."
+    NEW_KEY=$(docker compose -f docker-compose.convex.yml exec -T convex-backend ./generate_admin_key.sh 2>/dev/null | grep -E "^app\|" || echo "")
+
+    if [ -z "$NEW_KEY" ]; then
+        echo "  ❌ Failed to generate admin key"
+        exit 1
+    fi
+
+    echo "  ✅ Generated admin key: ${NEW_KEY:0:30}..."
+
+    # Update .env.local with new key
+    if [ -f .env.local ]; then
+        # Replace existing key or add it if not present
+        if grep -q "^CONVEX_SELF_HOSTED_ADMIN_KEY=" .env.local; then
+            sed -i "s/^CONVEX_SELF_HOSTED_ADMIN_KEY=.*/CONVEX_SELF_HOSTED_ADMIN_KEY=\"$NEW_KEY\"/" .env.local
+        else
+            echo "CONVEX_SELF_HOSTED_ADMIN_KEY=\"$NEW_KEY\"" >> .env.local
+        fi
+    else
+        # Create .env.local if it doesn't exist
+        cat > .env.local << EOF
+# Self-hosted Convex configuration for local development
+CONVEX_SELF_HOSTED_URL=$BACKEND_URL
+CONVEX_SELF_HOSTED_ADMIN_KEY="$NEW_KEY"
+
+# Frontend Configuration
+VITE_CONVEX_URL=$BACKEND_URL
+EOF
+    fi
+
+    # Also update .env.convex.local for the container
+    if [ -f .env.convex.local ]; then
+        sed -i "s/^CONVEX_SELF_HOSTED_ADMIN_KEY=.*/CONVEX_SELF_HOSTED_ADMIN_KEY=$NEW_KEY/" .env.convex.local
+        sed -i "s/^CONVEX_ADMIN_KEY=.*/CONVEX_ADMIN_KEY=$NEW_KEY/" .env.convex.local
+    fi
+
+    echo "  ✅ Admin key updated in .env.local and .env.convex.local"
+else
+    echo "  ✅ Existing admin key is valid"
+fi
+
+# Deploy Convex functions
+echo "📦 Deploying Convex functions..."
+npx convex deploy --yes
+
+echo "✅ Convex functions deployed"
 
 # Start frontend with PM2
 echo "🎨 Starting frontend with PM2..."

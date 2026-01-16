@@ -15,25 +15,24 @@ services:
     stop_signal: SIGINT
     ports:
       - "3210:3210" # Convex API port
-      - "3212:3212" # Convex site proxy port
+      - "3211:3211" # Convex site proxy port (for auth)
     volumes:
       - convex-data:/convex/data
-      - ./docker-entrypoint.sh:/docker-entrypoint.sh:ro
+      - ./start-convex-backend.sh:/start-convex-backend.sh:ro
       - ./jwt_private_key.pem:/jwt_private_key.pem:ro
-    entrypoint: ["/docker-entrypoint.sh"]
+    entrypoint: ["/bin/bash", "/start-convex-backend.sh"]
     environment:
       # Convex Cloud Origin - External URL for Convex API access
       # Automatically set by setup script in Coder workspaces
-      # For local development, defaults to http://localhost:3210
-      - CONVEX_CLOUD_ORIGIN=${CONVEX_CLOUD_ORIGIN:-http://localhost:3210}
+      - CONVEX_CLOUD_ORIGIN=${CONVEX_CLOUD_ORIGIN}
       # Convex Site Origin - HTTP actions endpoint
-      - CONVEX_SITE_ORIGIN=${CONVEX_SITE_ORIGIN:-http://localhost:3212}
+      - CONVEX_SITE_ORIGIN=${CONVEX_SITE_ORIGIN}
       # PostgreSQL Database URL (required)
       - POSTGRES_URL=${POSTGRES_URL}
       # Instance name for identification (matches PostgreSQL database name)
       - INSTANCE_NAME=app
       # Admin key for authentication (generated on first start)
-      - CONVEX_ADMIN_KEY=${CONVEX_ADMIN_KEY:-}
+      - CONVEX_ADMIN_KEY=${CONVEX_ADMIN_KEY}
       # Logging
       - RUST_LOG=info,convex=debug
       # Lower document retention for development
@@ -42,8 +41,8 @@ services:
       - DO_NOT_REQUIRE_SSL=true
       # Auth configuration for @convex-dev/auth
       # Note: JWT_PRIVATE_KEY is set by docker-entrypoint.sh from JWT_PRIVATE_KEY_BASE64
-      - JWT_ISSUER=${JWT_ISSUER:-http://localhost:3210}
-      - CONVEX_SITE_URL=${CONVEX_SITE_URL:-http://localhost:3210}
+      - JWT_ISSUER=${JWT_ISSUER}
+      - CONVEX_SITE_URL=${CONVEX_SITE_URL}
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3210/version"]
       interval: 5s

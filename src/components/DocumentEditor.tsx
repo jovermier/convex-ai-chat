@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { Id } from "../../convex/_generated/dataModel";
@@ -12,13 +12,13 @@ export function DocumentEditor() {
   const [selectedDocumentId, setSelectedDocumentId] = useState<Id<"documents"> | null>(null);
   const [documentContent, setDocumentContent] = useState("");
   const [documentTitle, setDocumentTitle] = useState("");
-  
+
   const documents = useQuery(api.documents.list);
   const selectedDocument = useQuery(
     api.documents.get,
     selectedDocumentId ? { id: selectedDocumentId } : "skip"
   );
-  
+
   const createDocument = useMutation(api.documents.create);
   const updateDocument = useMutation(api.documents.update);
 
@@ -31,23 +31,34 @@ export function DocumentEditor() {
     }
   }, [documents, selectedDocumentId]);
 
-  // Update local state when document changes
+  // Track if we've already initialized this document to prevent overwrites
+  const [initializedDocuments, setInitializedDocuments] = useState<Set<string>>(new Set());
+
+  // Update local state when document changes (only on first load or document switch)
   useEffect(() => {
     if (selectedDocument) {
-      // Ensure content has section IDs for AI targeting
-      const contentWithIds = selectedDocument.content ? addSectionIds(selectedDocument.content) : "";
-      setDocumentContent(contentWithIds);
-      setDocumentTitle(selectedDocument.title);
-      
-      // Update the document in database if IDs were added
-      if (contentWithIds !== selectedDocument.content && contentWithIds.trim()) {
-        updateDocument({
-          id: selectedDocument._id,
-          content: contentWithIds,
-        });
+      const docId = selectedDocument._id.toString();
+
+      // Only update if this document hasn't been initialized yet
+      if (!initializedDocuments.has(docId)) {
+        // Ensure content has section IDs for AI targeting
+        const contentWithIds = selectedDocument.content ? addSectionIds(selectedDocument.content) : "";
+        setDocumentContent(contentWithIds);
+        setDocumentTitle(selectedDocument.title);
+
+        // Update the document in database if IDs were added
+        if (contentWithIds !== selectedDocument.content && contentWithIds.trim()) {
+          updateDocument({
+            id: selectedDocument._id,
+            content: contentWithIds,
+          });
+        }
+
+        // Mark as initialized
+        setInitializedDocuments(prev => new Set(prev).add(docId));
       }
     }
-  }, [selectedDocument]);
+  }, [selectedDocument?._id]); // Only depend on document ID, not content
 
   const handleCreateDocument = async () => {
     try {
@@ -62,33 +73,50 @@ export function DocumentEditor() {
     }
   };
 
+  // Track last saved content to detect actual changes
+  const lastSavedContentRef = useRef<string | null>(null);
+  const lastSavedTitleRef = useRef<string | null>(null);
+
+  // Update refs when content is successfully saved
   const handleSaveDocument = async () => {
     if (!selectedDocumentId) return;
-    
+
     try {
       await updateDocument({
         id: selectedDocumentId,
         title: documentTitle,
         content: documentContent,
       });
+      // Update refs to track what was last saved
+      lastSavedContentRef.current = documentContent;
+      lastSavedTitleRef.current = documentTitle;
       toast.success("Document saved");
     } catch (error) {
       toast.error("Failed to save document");
     }
   };
 
+  // Initialize refs when document loads
+  useEffect(() => {
+    if (selectedDocument) {
+      lastSavedContentRef.current = selectedDocument.content;
+      lastSavedTitleRef.current = selectedDocument.title;
+    }
+  }, [selectedDocument?._id]);
+
   // Auto-save every 5 seconds
   useEffect(() => {
-    if (!selectedDocumentId || !selectedDocument) return;
-    
+    if (!selectedDocumentId) return;
+
     const interval = setInterval(() => {
-      if (documentContent !== selectedDocument.content || documentTitle !== selectedDocument.title) {
+      // Only save if content has actually changed from last saved state
+      if (documentContent !== lastSavedContentRef.current || documentTitle !== lastSavedTitleRef.current) {
         handleSaveDocument();
       }
     }, 5000);
 
     return () => clearInterval(interval);
-  }, [selectedDocumentId, selectedDocument, documentContent, documentTitle]);
+  }, [selectedDocumentId, documentContent, documentTitle]);
 
   if (!documents) {
     return (
@@ -101,7 +129,7 @@ export function DocumentEditor() {
   return (
     <div className="flex h-full">
       {/* Document List Sidebar */}
-      <div className="w-64 border-r bg-white">
+      <div className="w-64 border-r bg-card">
         <DocumentList
           documents={documents}
           selectedDocumentId={selectedDocumentId}

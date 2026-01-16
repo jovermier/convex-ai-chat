@@ -343,6 +343,7 @@ Skills activate automatically based on context. You don't need to invoke them ma
 
 | Skill | Trigger | Description |
 |-------|---------|-------------|
+| `coder-template` | All files | Coder workspace environment context and available tools |
 | `react:latest-react` | React component files | Latest React 19 and React Compiler features (mid-2024 to 2026) |
 | `convex:coder-convex` | Convex files | Self-hosted Convex development patterns |
 | `playwright:playwright-test` | Playwright test files | End-to-end testing patterns and best practices |

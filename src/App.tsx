@@ -7,8 +7,8 @@ import { DocumentEditor } from "./components/DocumentEditor";
 
 export default function App() {
   return (
-    <div className="min-h-screen flex flex-col bg-gray-50">
-      <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-sm h-16 flex justify-between items-center border-b shadow-sm px-4">
+    <div className="min-h-screen flex flex-col bg-background">
+      <header className="sticky top-0 z-10 bg-background/80 backdrop-blur-sm h-16 flex justify-between items-center border-b shadow-sm px-4">
         <h2 className="text-xl font-semibold text-primary">AI Document Editor</h2>
         <SignOutButton />
       </header>
@@ -41,7 +41,7 @@ function Content() {
           <div className="w-full max-w-md mx-auto p-8">
             <div className="text-center mb-8">
               <h1 className="text-4xl font-bold text-primary mb-4">AI Document Editor</h1>
-              <p className="text-xl text-secondary">Sign in to start editing with AI assistance</p>
+              <p className="text-xl text-muted-foreground">Sign in to start editing with AI assistance</p>
             </div>
             <SignInForm />
           </div>

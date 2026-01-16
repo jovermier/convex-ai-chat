@@ -22,6 +22,28 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+*.backup
 
-# Ignored for the template, you probably want to remove it:
+# Package lock (this project uses pnpm)
 package-lock.json
+
+# Security - private keys and secrets
+*.pem
+*.key
+.env
+.env.*
+
+# Convex generated files (can be regenerated with npx convex codegen)
+convex/_generated/
+convex/_deprecated/
+
+# Convex local development state
+.convex/
+
+# Test results and coverage
+playwright-report/
+test-results/
+coverage/
+
+# Build artifacts
+.cache/

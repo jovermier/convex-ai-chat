@@ -10,6 +10,7 @@
 
 import type * as ai from "../ai.js";
 import type * as auth from "../auth.js";
+import type * as check_env from "../check_env.js";
 import type * as documents from "../documents.js";
 import type * as http from "../http.js";
 import type * as messages from "../messages.js";
@@ -24,6 +25,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   ai: typeof ai;
   auth: typeof auth;
+  check_env: typeof check_env;
   documents: typeof documents;
   http: typeof http;
   messages: typeof messages;

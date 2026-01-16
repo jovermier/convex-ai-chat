@@ -7,7 +7,7 @@
     "start": "./start.sh",
     "stop": "./stop.sh",
     "dev": "npm-run-all --parallel dev:frontend convex:start",
-    "dev:frontend": "vite --open",
+    "dev:frontend": "vite",
     "dev:backend": "convex dev --local --once",
     "build": "vite build",
     "lint": "tsc -p convex -noEmit --pretty false && tsc -p . -noEmit --pretty false && convex dev --once && vite build",

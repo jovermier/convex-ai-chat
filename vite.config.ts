@@ -43,5 +43,6 @@ window.addEventListener('message', async (message) => {
   server: {
     allowedHosts: true,
     port: 3000,
+    open: false,
   },
 }));

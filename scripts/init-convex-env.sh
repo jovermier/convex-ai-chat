@@ -98,15 +98,24 @@ echo "📤 Setting deployment environment variables..."
 
 # Set JWT_PRIVATE_KEY (multi-line value, use stdin)
 echo "  Setting JWT_PRIVATE_KEY..."
-echo "$JWT_PRIVATE_KEY" | npx convex env set JWT_PRIVATE_KEY
+if ! echo "$JWT_PRIVATE_KEY" | npx convex env set JWT_PRIVATE_KEY; then
+    echo "❌ Failed to set JWT_PRIVATE_KEY"
+    exit 1
+fi
 
 # Set JWT_ISSUER
 echo "  Setting JWT_ISSUER..."
-npx convex env set JWT_ISSUER "$CONVEX_SITE_ORIGIN"
+if ! npx convex env set JWT_ISSUER "$CONVEX_SITE_ORIGIN"; then
+    echo "❌ Failed to set JWT_ISSUER"
+    exit 1
+fi
 
 # Set JWKS (multi-line value, use stdin)
 echo "  Setting JWKS..."
-echo "$JWKS" | npx convex env set JWKS
+if ! echo "$JWKS" | npx convex env set JWKS; then
+    echo "❌ Failed to set JWKS"
+    exit 1
+fi
 
 # Now set user variables from the deployment env file
 # Parse only the user section (after the USER VARIABLES comment)

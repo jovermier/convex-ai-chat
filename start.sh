@@ -59,6 +59,15 @@ if [ $SETUP_NEEDED -eq 1 ]; then
     echo ""
 fi
 
+# Ensure JWT key file exists before starting Docker
+# Docker will create a directory if the mounted file doesn't exist
+JWT_KEY_FILE="jwt_private_key.pem"
+if [ ! -f "$JWT_KEY_FILE" ]; then
+    echo "🔑 Creating JWT key file (required before starting Docker)..."
+    openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 2>/dev/null | openssl pkcs8 -topk8 -nocrypt -outform PEM 2>/dev/null > "$JWT_KEY_FILE"
+    echo "✅ Created $JWT_KEY_FILE"
+fi
+
 # Start Convex backend with Docker Compose
 # Load environment variables from .env.convex.local FIRST
 # This ensures the ${VAR:-default} substitution in docker-compose.yml
@@ -138,16 +147,16 @@ else
     echo "  ✅ Existing admin key is valid"
 fi
 
-# Initialize Convex deployment environment variables
-# These variables appear in the Convex dashboard under "Environment Variables"
-echo "🔐 Initializing Convex deployment environment variables..."
-bash scripts/init-convex-env.sh
-
-# Deploy Convex functions
+# Deploy Convex functions FIRST - a deployment must exist before env vars can be set
 echo "📦 Deploying Convex functions..."
 npx convex deploy --yes
 
 echo "✅ Convex functions deployed"
+
+# Initialize Convex deployment environment variables AFTER deployment
+# These variables appear in the Convex dashboard under "Environment Variables"
+echo "🔐 Initializing Convex deployment environment variables..."
+bash scripts/init-convex-env.sh
 
 # Start frontend with PM2
 echo "🎨 Starting frontend with PM2..."

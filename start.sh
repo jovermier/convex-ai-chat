@@ -147,6 +147,13 @@ else
     echo "  ✅ Existing admin key is valid"
 fi
 
+# Ensure dependencies are installed before deploying
+if [ ! -d "node_modules" ]; then
+    echo "📦 node_modules not found, installing dependencies..."
+    pnpm install
+    echo "✅ Dependencies installed"
+fi
+
 # Deploy Convex functions FIRST - a deployment must exist before env vars can be set
 echo "📦 Deploying Convex functions..."
 npx convex deploy --yes

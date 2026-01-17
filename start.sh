@@ -32,9 +32,41 @@ fi
 echo "📦 Pulling latest Docker images..."
 docker compose -f docker-compose.convex.yml pull --quiet 2>/dev/null || true
 
+# Check if Convex setup is needed
+ENV_FILE=".env.convex.local"
+SETUP_NEEDED=0
+
+if [ ! -f "$ENV_FILE" ]; then
+    echo "🔧 .env.convex.local not found, running setup..."
+    SETUP_NEEDED=1
+else
+    # Check if required variables are present
+    if ! grep -q "^POSTGRES_URL=" "$ENV_FILE" 2>/dev/null; then
+        echo "🔧 .env.convex.local missing POSTGRES_URL, running setup..."
+        SETUP_NEEDED=1
+    fi
+    # In Coder environment, also check for Convex URLs
+    if [ -n "$CODER" ] && [ -n "$CODER_WORKSPACE_NAME" ]; then
+        if ! grep -q "^CONVEX_CLOUD_ORIGIN=" "$ENV_FILE" 2>/dev/null; then
+            echo "🔧 .env.convex.local missing Convex URLs, running setup..."
+            SETUP_NEEDED=1
+        fi
+    fi
+fi
+
+if [ $SETUP_NEEDED -eq 1 ]; then
+    bash scripts/setup-convex.sh --no-start
+    echo ""
+fi
+
 # Start Convex backend with Docker Compose
-# Load environment variables from .env.convex.local
+# Load environment variables from .env.convex.local FIRST
+# This ensures the ${VAR:-default} substitution in docker-compose.yml
+# resolves to actual values instead of defaults
 echo "📦 Starting Convex backend..."
+set -a
+source .env.convex.local
+set +a
 docker compose -f docker-compose.convex.yml up -d convex-backend convex-dashboard
 
 # Wait for backend to be healthy
@@ -105,6 +137,11 @@ EOF
 else
     echo "  ✅ Existing admin key is valid"
 fi
+
+# Initialize Convex deployment environment variables
+# These variables appear in the Convex dashboard under "Environment Variables"
+echo "🔐 Initializing Convex deployment environment variables..."
+bash scripts/init-convex-env.sh
 
 # Deploy Convex functions
 echo "📦 Deploying Convex functions..."

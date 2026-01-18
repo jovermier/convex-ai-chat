@@ -82,7 +82,6 @@ echo "✅ PostgreSQL database URL configured"
 # Set default URLs if not already defined (use Coder-generated URLs if available)
 CONVEX_CLOUD_ORIGIN="${CONVEX_CLOUD_ORIGIN:-${CONVEX_API_URL:-http://localhost:3210}}"
 CONVEX_SITE_ORIGIN="${CONVEX_SITE_ORIGIN:-${CONVEX_PROXY_URL:-http://localhost:3211}}"
-CONVEX_SITE_URL="${CONVEX_SITE_URL:-${CONVEX_API_URL:-http://localhost:3210}}"
 CONVEX_DEPLOYMENT_URL="${CONVEX_DEPLOYMENT_URL:-${CONVEX_API_URL:-http://localhost:3210}}"
 
 # Generate .env.convex.local if it doesn't exist or is incomplete
@@ -117,9 +116,6 @@ CONVEX_CLOUD_ORIGIN=$CONVEX_CLOUD_ORIGIN
 # Convex Site Origin - HTTP actions endpoint (for auth)
 CONVEX_SITE_ORIGIN=$CONVEX_SITE_ORIGIN
 
-# Convex Site URL - Used by @convex-dev/auth for provider domain
-CONVEX_SITE_URL=$CONVEX_SITE_URL
-
 # Convex Deployment URL
 CONVEX_DEPLOYMENT_URL=$CONVEX_DEPLOYMENT_URL
 EOF
@@ -132,7 +128,7 @@ set -a
 source "$ENV_FILE"
 set +a
 
-export CONVEX_CLOUD_ORIGIN CONVEX_SITE_ORIGIN CONVEX_SITE_URL CONVEX_DEPLOYMENT_URL
+export CONVEX_CLOUD_ORIGIN CONVEX_SITE_ORIGIN CONVEX_DEPLOYMENT_URL
 
 # Check if Docker is available
 if ! command -v docker &> /dev/null; then

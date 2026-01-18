@@ -198,10 +198,6 @@ run_test "CONVEX_SITE_ORIGIN is set" \
     "grep -q 'CONVEX_SITE_ORIGIN=' '${ENV_FILE}' 2>/dev/null" \
     false
 
-run_test "CONVEX_SITE_URL is set" \
-    "grep -q 'CONVEX_SITE_URL=' '${ENV_FILE}' 2>/dev/null" \
-    false
-
 run_test "JWT_ISSUER is set" \
     "grep -q 'JWT_ISSUER=' '${ENV_FILE}' 2>/dev/null" \
     false
@@ -246,9 +242,6 @@ run_test "JWT_ISSUER is set in container" \
     "docker exec ${CONVEX_CONTAINER} env | grep -q 'JWT_ISSUER=' 2>/dev/null" \
     false
 
-run_test "CONVEX_SITE_URL is set in container" \
-    "docker exec ${CONVEX_CONTAINER} env | grep -q 'CONVEX_SITE_URL=' 2>/dev/null" \
-    false
 
 run_test "CONVEX_CLOUD_ORIGIN is set in container" \
     "docker exec ${CONVEX_CONTAINER} env | grep -q 'CONVEX_CLOUD_ORIGIN=' 2>/dev/null" \

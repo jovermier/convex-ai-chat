@@ -33,7 +33,7 @@ JWKS=""
 EOF
 fi
 
-# Source container env file to get CONVEX_SITE_ORIGIN and CONVEX_SITE_URL
+# Source container env file to get CONVEX_SITE_ORIGIN
 set -a
 source "$CONTAINER_ENV_FILE"
 set +a

@@ -19,9 +19,10 @@ if [ ! -f "$DEPLOYMENT_ENV_FILE" ]; then
 
 # === AUTO-GENERATED VARIABLES (do not edit manually) ===
 # These are managed by scripts/init-convex-env.sh
-JWT_PRIVATE_KEY=
-JWT_ISSUER=
-JWKS=
+# Multi-line values are stored as base64 for safe env file storage
+JWT_PRIVATE_KEY_BASE64=""
+JWT_ISSUER=""
+JWKS=""
 
 # === USER VARIABLES (add your own below) ===
 # Add your environment variables here, one per line
@@ -78,14 +79,17 @@ console.log(JSON.stringify(jwk));
 echo "📝 Updating auto-generated variables in $DEPLOYMENT_ENV_FILE..."
 TEMP_FILE=$(mktemp)
 
+# Encode the multi-line JWT private key as base64 for safe env file storage
+JWT_PRIVATE_KEY_BASE64=$(echo "$JWT_PRIVATE_KEY" | base64 -w 0)
+
 # Process the file and update auto-generated variables
 while IFS= read -r line || [ -n "$line" ]; do
-    if [[ "$line" =~ ^JWT_PRIVATE_KEY= ]]; then
-        echo "JWT_PRIVATE_KEY=$JWT_PRIVATE_KEY"
+    if [[ "$line" =~ ^JWT_PRIVATE_KEY_BASE64= ]]; then
+        echo "JWT_PRIVATE_KEY_BASE64=\"$JWT_PRIVATE_KEY_BASE64\""
     elif [[ "$line" =~ ^JWT_ISSUER= ]]; then
-        echo "JWT_ISSUER=$CONVEX_SITE_ORIGIN"
+        echo "JWT_ISSUER=\"$CONVEX_SITE_ORIGIN\""
     elif [[ "$line" =~ ^JWKS= ]]; then
-        echo "JWKS=$JWKS"
+        echo "JWKS=\"$JWKS\""
     else
         echo "$line"
     fi

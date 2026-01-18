@@ -72,7 +72,9 @@ const crypto = require('crypto');
 const privateKey = \`$JWT_PRIVATE_KEY\`;
 const publicKey = crypto.createPublicKey(privateKey);
 const jwk = publicKey.export({ format: 'jwk' });
-console.log(JSON.stringify(jwk));
+// JWKS format requires {\"keys\": [...]} wrapper
+const jwks = { keys: [{ use: 'sig', ...jwk }] };
+console.log(JSON.stringify(jwks));
 ")
 
 # Update auto-generated variables in the deployment env file

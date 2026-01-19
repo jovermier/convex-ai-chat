@@ -147,6 +147,18 @@ else
     echo "  ✅ Existing admin key is valid"
 fi
 
+# Ensure .env.local has CONVEX_SITE_ORIGIN for Convex CLI tools
+# Convex reads .env.local but not .env.convex.local by default
+if ! grep -q "^CONVEX_SITE_ORIGIN=" .env.local 2>/dev/null; then
+    echo "🔧 Adding CONVEX_SITE_ORIGIN to .env.local..."
+    # Get value from .env.convex.local
+    SITE_ORIGIN=$(grep "^CONVEX_SITE_ORIGIN=" .env.convex.local 2>/dev/null | cut -d'=' -f2)
+    if [ -n "$SITE_ORIGIN" ]; then
+        echo "CONVEX_SITE_ORIGIN=$SITE_ORIGIN" >> .env.local
+        echo "  ✅ Added CONVEX_SITE_ORIGIN to .env.local"
+    fi
+fi
+
 # Ensure dependencies are installed before deploying
 if [ ! -d "node_modules" ]; then
     echo "📦 node_modules not found, installing dependencies..."
@@ -155,6 +167,7 @@ if [ ! -d "node_modules" ]; then
 fi
 
 # Deploy Convex functions FIRST - a deployment must exist before env vars can be set
+# Note: npx convex deploy automatically reads .env.local (which has CONVEX_SITE_ORIGIN)
 echo "📦 Deploying Convex functions..."
 npx convex deploy --yes
 

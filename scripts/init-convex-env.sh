@@ -109,6 +109,13 @@ if ! echo "$JWT_PRIVATE_KEY" | npx convex env set JWT_PRIVATE_KEY; then
     exit 1
 fi
 
+# Set CONVEX_SITE_ORIGIN (required by auth.config.ts)
+echo "  Setting CONVEX_SITE_ORIGIN..."
+if ! npx convex env set CONVEX_SITE_ORIGIN "$CONVEX_SITE_ORIGIN"; then
+    echo "❌ Failed to set CONVEX_SITE_ORIGIN"
+    exit 1
+fi
+
 # Set JWT_ISSUER
 echo "  Setting JWT_ISSUER..."
 if ! npx convex env set JWT_ISSUER "$CONVEX_SITE_ORIGIN"; then

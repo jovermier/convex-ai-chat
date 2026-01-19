@@ -166,7 +166,13 @@ if [ ! -d "node_modules" ]; then
     echo "✅ Dependencies installed"
 fi
 
-# Deploy Convex functions FIRST - a deployment must exist before env vars can be set
+# Initialize Convex deployment environment variables FIRST
+# These variables must be set BEFORE deployment or deployment will fail
+# Note: CONVEX_SITE_ORIGIN is required by auth.config.ts
+echo "🔐 Initializing Convex deployment environment variables..."
+bash scripts/init-convex-env.sh
+
+# Deploy Convex functions AFTER env vars are set
 # Note: npx convex deploy automatically reads .env.local (which has CONVEX_SITE_ORIGIN)
 echo "📦 Deploying Convex functions..."
 # Ensure CONVEX_SITE_ORIGIN is exported for npx convex deploy validation
@@ -174,11 +180,6 @@ export CONVEX_SITE_ORIGIN
 npx convex deploy --yes
 
 echo "✅ Convex functions deployed"
-
-# Initialize Convex deployment environment variables AFTER deployment
-# These variables appear in the Convex dashboard under "Environment Variables"
-echo "🔐 Initializing Convex deployment environment variables..."
-bash scripts/init-convex-env.sh
 
 # Start frontend with PM2
 echo "🎨 Starting frontend with PM2..."

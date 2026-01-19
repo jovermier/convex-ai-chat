@@ -9,6 +9,31 @@ cd "$PROJECT_DIR"
 
 echo "🚀 Starting AI Document Editor App..."
 
+# Check if services are already running
+CONVEX_RUNNING=false
+PM2_RUNNING=false
+
+# Check if Convex Docker containers are running
+if docker compose -f docker-compose.convex.yml ps 2>/dev/null | grep -q "convex-backend.*Up"; then
+    CONVEX_RUNNING=true
+fi
+
+# Check if PM2 frontend is running
+if pm2 list 2>/dev/null | grep -q "frontend.*online"; then
+    PM2_RUNNING=true
+fi
+
+# If either service is running, stop them first
+if [ "$CONVEX_RUNNING" = true ] || [ "$PM2_RUNNING" = true ]; then
+    echo "⚠️  Services already running:"
+    [ "$CONVEX_RUNNING" = true ] && echo "   - Convex backend (Docker)"
+    [ "$PM2_RUNNING" = true ] && echo "   - Frontend (PM2)"
+    echo ""
+    echo "🛑 Stopping existing services..."
+    bash ./stop.sh
+    echo ""
+fi
+
 # Detect if running in Coder workspace
 if [ -n "$CODER" ] && [ -n "$CODER_WORKSPACE_NAME" ]; then
     # Coder workspace URLs are generated dynamically
@@ -164,6 +189,16 @@ if [ ! -d "node_modules" ]; then
     echo "📦 node_modules not found, installing dependencies..."
     pnpm install
     echo "✅ Dependencies installed"
+fi
+
+# Ensure Playwright browsers are installed for tests
+# Note: This is only needed if running tests; skip in CI/production environments
+if [ -z "$CI" ] && ! pnpm exec playwright --version >/dev/null 2>&1; then
+    echo "🎭 Playwright not installed, skipping test setup (tests will install it when needed)"
+elif [ -z "$CI" ] && [ ! -d "$HOME/.cache/ms-playwright" ]; then
+    echo "🎭 Playwright browsers not installed, installing (this may take a minute)..."
+    pnpm test:install || echo "⚠️  Playwright test install skipped (may fail in some environments)"
+    echo "✅ Playwright browsers ready"
 fi
 
 # Initialize Convex deployment environment variables FIRST

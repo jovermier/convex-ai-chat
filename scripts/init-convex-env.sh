@@ -30,6 +30,7 @@ JWKS=""
 # OPENAI_API_KEY=sk-...
 # STRIPE_SECRET_KEY=sk_live_...
 # ANTHROPIC_API_KEY=sk-ant-...
+
 EOF
 fi
 
@@ -157,6 +158,31 @@ while IFS= read -r line || [ -n "$line" ]; do
     echo "  Setting $VAR_NAME..."
     npx convex env set "$VAR_NAME" "$VAR_VALUE"
 done < "$DEPLOYMENT_ENV_FILE"
+
+# Set OpenAI configuration from environment if not already set in deployment file
+# These are required for the AI agent functionality
+# Read from LITELLM_APP_API_KEY and LITELLM_BASE_URL environment variables
+if ! grep -q "^OPENAI_API_KEY=" "$DEPLOYMENT_ENV_FILE" 2>/dev/null; then
+    if [ -n "$LITELLM_APP_API_KEY" ]; then
+        echo "  Setting OPENAI_API_KEY from LITELLM_APP_API_KEY..."
+        npx convex env set OPENAI_API_KEY "$LITELLM_APP_API_KEY"
+        # Update the deployment file for persistence
+        echo "OPENAI_API_KEY=$LITELLM_APP_API_KEY" >> "$DEPLOYMENT_ENV_FILE"
+    else
+        echo "  ⚠️  LITELLM_APP_API_KEY not set in environment, skipping OPENAI_API_KEY"
+    fi
+fi
+
+if ! grep -q "^OPENAI_BASE_URL=" "$DEPLOYMENT_ENV_FILE" 2>/dev/null; then
+    if [ -n "$LITELLM_BASE_URL" ]; then
+        echo "  Setting OPENAI_BASE_URL from LITELLM_BASE_URL..."
+        npx convex env set OPENAI_BASE_URL "$LITELLM_BASE_URL"
+        # Update the deployment file for persistence
+        echo "OPENAI_BASE_URL=$LITELLM_BASE_URL" >> "$DEPLOYMENT_ENV_FILE"
+    else
+        echo "  ⚠️  LITELLM_BASE_URL not set in environment, skipping OPENAI_BASE_URL"
+    fi
+fi
 
 echo "✅ Convex deployment environment variables initialized"
 echo "   Verify in dashboard: Environment Variables section"

@@ -9,7 +9,7 @@ const applicationTables = {
     userId: v.id("users"),
     lastModified: v.number(),
   }).index("by_user", ["userId"]),
-  
+
   messages: defineTable({
     documentId: v.id("documents"),
     role: v.union(v.literal("user"), v.literal("assistant")),

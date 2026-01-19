@@ -41,6 +41,7 @@ window.addEventListener('message', async (message) => {
     },
   },
   server: {
+    host: true, // Listen on all interfaces (0.0.0.0) for external access
     allowedHosts: true,
     port: 3000,
     open: false,

@@ -138,8 +138,8 @@ EOF
 
     # Also update .env.convex.local for the container
     if [ -f .env.convex.local ]; then
-        sed -i "s/^CONVEX_SELF_HOSTED_ADMIN_KEY=.*/CONVEX_SELF_HOSTED_ADMIN_KEY=$NEW_KEY/" .env.convex.local
-        sed -i "s/^CONVEX_ADMIN_KEY=.*/CONVEX_ADMIN_KEY=$NEW_KEY/" .env.convex.local
+        sed -i "s/^CONVEX_SELF_HOSTED_ADMIN_KEY=.*/CONVEX_SELF_HOSTED_ADMIN_KEY='$NEW_KEY'/" .env.convex.local
+        sed -i "s/^CONVEX_ADMIN_KEY=.*/CONVEX_ADMIN_KEY='$NEW_KEY'/" .env.convex.local
     fi
 
     echo "  ✅ Admin key updated in .env.local and .env.convex.local"
@@ -169,6 +169,8 @@ fi
 # Deploy Convex functions FIRST - a deployment must exist before env vars can be set
 # Note: npx convex deploy automatically reads .env.local (which has CONVEX_SITE_ORIGIN)
 echo "📦 Deploying Convex functions..."
+# Ensure CONVEX_SITE_ORIGIN is exported for npx convex deploy validation
+export CONVEX_SITE_ORIGIN
 npx convex deploy --yes
 
 echo "✅ Convex functions deployed"

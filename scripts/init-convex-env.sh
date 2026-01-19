@@ -67,9 +67,9 @@ fi
 
 # Generate JWKS from private key
 echo "🔑 Generating JWKS from private key..."
-JWKS=$(node -e "
+JWKS=$(JWT_PRIVATE_KEY="$JWT_PRIVATE_KEY" node -e "
 const crypto = require('crypto');
-const privateKey = \`$JWT_PRIVATE_KEY\`;
+const privateKey = process.env.JWT_PRIVATE_KEY;
 const publicKey = crypto.createPublicKey(privateKey);
 const jwk = publicKey.export({ format: 'jwk' });
 // JWKS format requires {\"keys\": [...]} wrapper

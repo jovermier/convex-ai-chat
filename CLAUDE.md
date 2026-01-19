@@ -2,6 +2,92 @@
 
 A collaborative document editor with AI-powered assistance built with Convex backend, React frontend, and shadcn/ui components.
 
+## Deployment Options
+
+This app supports **two deployment modes**:
+
+| Mode | Description | Use Case |
+|------|-------------|----------|
+| **Convex Cloud** | Hosted by Convex (free tier available) | Quick start, development, prototyping |
+| **Self-Hosted** | Convex running in Docker containers | Production, data sovereignty, custom infrastructure |
+
+The app is currently configured for **self-hosted deployment**. See the "Switching Deployment Modes" section below.
+
+---
+
+## Self-Hosted Convex
+
+This project can use **self-hosted Convex** running in Docker containers instead of Convex Cloud. This provides full control over data and infrastructure.
+
+### Architecture (Self-Hosted)
+
+- **Frontend**: Vite dev server with React 19 and TypeScript
+- **Backend**: Self-hosted Convex running in Docker
+- **Database**: PostgreSQL (required)
+- **Dashboard**: Convex dashboard for managing your deployment
+- **Editor**: Tiptap rich text editor (ProseMirror-based)
+
+### Quick Start
+
+```bash
+pnpm install          # Install dependencies
+pnpm start            # Start frontend (PM2) + backend (Docker)
+pnpm stop             # Stop both services
+pnpm dev              # Start both in development mode
+```
+
+### Environment Files
+
+The app uses multiple environment files for different purposes:
+
+**`.env.local`** - Frontend and Convex CLI configuration (self-hosted mode):
+```bash
+CONVEX_SELF_HOSTED_URL=<convex-api-url>
+CONVEX_SELF_HOSTED_ADMIN_KEY=<admin-key>
+VITE_CONVEX_URL=<convex-api-url>
+CONVEX_SITE_ORIGIN=<convex-site-url>
+```
+
+**For Convex Cloud mode**, this file should NOT contain `CONVEX_SELF_HOSTED_*` variables.
+
+**`.env.convex.local`** - Docker Compose configuration (auto-generated for self-hosted):
+```bash
+POSTGRES_URL=<postgres-connection-url>
+CONVEX_CLOUD_ORIGIN=<convex-api-url>
+CONVEX_SITE_ORIGIN=<convex-site-url>
+CONVEX_DEPLOYMENT_URL=<convex-api-url>
+```
+
+**`.env.convex.deployment`** - Deployment environment variables (managed by `scripts/init-convex-env.sh`)
+
+### Service URLs
+
+**Local Development (Self-Hosted):**
+- Frontend: http://localhost:3000
+- Convex API: http://localhost:3210
+- Convex Dashboard: http://localhost:6791
+
+**Coder Workspace** (auto-generated):
+- Frontend: `https://app--<workspace>--<owner>.<coder-domain>`
+- Convex API: `https://convex-api--<workspace>--<owner>.<coder-domain>`
+- Convex Dashboard: `https://convex--<workspace>--<owner>.<coder-domain>`
+
+### Switching Deployment Modes
+
+**To switch from Self-Hosted to Convex Cloud:**
+
+1. Remove `CONVEX_SELF_HOSTED_URL`, `CONVEX_SELF_HOSTED_ADMIN_KEY`, `VITE_CONVEX_URL`, and `CONVEX_SITE_ORIGIN` from `.env.local`
+2. Run `npx convex dev` to initialize a Cloud project
+3. Update `package.json` dev script to use `convex dev --local` instead of `convex:start`
+
+**To switch from Convex Cloud to Self-Hosted:**
+
+1. Add self-hosted environment variables to `.env.local`
+2. Ensure Docker is running and PostgreSQL is available
+3. Run `pnpm start` to start the self-hosted backend
+
+---
+
 ## Workflows
 
 This project follows the **Meta-Workflow** for task execution, which intelligently selects and composes specialized workflows based on task complexity.
@@ -10,7 +96,7 @@ This project follows the **Meta-Workflow** for task execution, which intelligent
 
 The master workflow that determines the best approach for any task.
 
-#### The 7-Step Process
+#### The 8-Step Process
 
 1. **Plan Approach** - Assess task and determine strategy
 2. **Explore** (if needed) - Gather missing information
@@ -92,14 +178,16 @@ All findings are classified using P1/P2/P3 severity:
 
 | Technology | Version | Purpose |
 |------------|---------|---------|
-| **React** | 19.2.1 | UI framework |
-| **Vite** | 6.2.0 | Build tool & dev server |
-| **Convex** | 1.31.2 | Backend-as-a-service (database, functions, auth) |
-| **TypeScript** | 5.7.2 | Type safety |
-| **Tailwind CSS** | 3.4.19 | Styling |
+| **React** | 19.2.3 | UI framework |
+| **Vite** | 7.3.1 | Build tool & dev server |
+| **Convex** | 1.31.4 | Backend (database, functions, auth) |
+| **TypeScript** | 5.9.3 | Type safety |
+| **Tailwind CSS** | 4.1.18 | Styling |
 | **@tailwindcss/typography** | 0.5.19 | Typography plugin for prose styling |
-| **@convex-dev/auth** | 0.0.80 | Authentication (Anonymous provider) |
-| **sonner** | 2.0.3 | Toast notifications |
+| **@convex-dev/auth** | 0.0.90 | Authentication (Anonymous provider) |
+| **sonner** | 2.0.7 | Toast notifications |
+| **@tiptap/react** | 3.15.3 | Rich text editor (ProseMirror-based) |
+| **pm2** | (via npm-run-all) | Process manager for production mode |
 
 ## Package Manager
 
@@ -107,9 +195,11 @@ All findings are classified using P1/P2/P3 severity:
 
 ```bash
 pnpm install          # Install dependencies
-pnpm dev              # Start both frontend and backend
+pnpm start            # Start both frontend and backend (production mode)
+pnpm stop             # Stop both services
+pnpm dev              # Start both frontend and backend (development mode)
 pnpm dev:frontend     # Start only Vite dev server
-pnpm dev:backend      # Start only Convex dev server
+pnpm dev:backend      # Start only Convex backend (once)
 pnpm build            # Build for production
 pnpm lint             # Run type checks and linting
 ```
@@ -120,6 +210,7 @@ pnpm lint             # Run type checks and linting
 |----------|---------|
 | **Node.js** | v24.12.0 |
 | **pnpm** | 10.27.0 |
+| **Docker** | Required for self-hosted Convex only |
 
 ## Project Structure
 
@@ -141,9 +232,10 @@ ai_document_editor_app/
 │   │   ├── ChatPane.tsx     # AI chat interface
 │   │   ├── DocumentEditor.tsx # Main editor orchestrator
 │   │   ├── DocumentList.tsx # Document sidebar
-│   │   └── EditorPane.tsx   # Markdown editor view
+│   │   └── EditorPane.tsx   # Rich text editor (Tiptap)
 │   ├── lib/
 │   │   ├── documentUtils.ts # Document processing utilities
+│   │   ├── markdown.ts      # Markdown serialization for Tiptap
 │   │   └── utils.ts         # shadcn/ui utilities
 │   ├── App.tsx              # Root component with auth
 │   ├── SignInForm.tsx       # Authentication form
@@ -151,16 +243,22 @@ ai_document_editor_app/
 │   ├── main.tsx             # Application entry point
 │   └── index.css            # Global styles with Tailwind
 │
+├── docker-compose.convex.yml # Docker Compose for self-hosted Convex
+├── scripts/
+│   ├── setup-convex.sh      # Convex setup script
+│   ├── init-convex-env.sh   # Initialize Convex environment variables
+│   ├── update-jwt-key.sh    # Update JWT keys for auth
+│   └── diagnostics.sh       # Diagnostic tools
+├── start.sh                 # Start script (PM2 + Docker)
+├── stop.sh                  # Stop script
 ├── components.json          # shadcn/ui configuration
 ├── tailwind.config.js       # Tailwind CSS configuration
 ├── tsconfig.json            # TypeScript project references
 ├── vite.config.ts           # Vite configuration
-└── package.json             # Dependencies and scripts
+├── .env.local               # Local environment variables (gitignored)
+├── .env.convex.local        # Convex Docker configuration (gitignored)
+└── .env.convex.deployment   # Convex deployment env vars (gitignored)
 ```
-
-## Convex Deployment
-
-This project is connected to: [`aromatic-puffin-793`](https://dashboard.convex.dev/d/aromatic-puffin-793)
 
 ## Database Schema
 
@@ -230,19 +328,22 @@ Custom theme extensions:
 
 Uses Convex Auth with **Anonymous provider** for easy sign-in. Consider changing to a production-ready provider (Email, Password, OAuth) before deploying.
 
+To change authentication providers, edit `convex/auth.config.ts`.
+
 ## Key Features
 
 1. **Document Management**: Create, edit, save documents with auto-save every 5 seconds
 2. **AI Chat**: Sidebar chat interface for AI assistance
 3. **Section-based Editing**: Documents have section IDs (`section-1`, `section-2`) for targeted AI edits
-4. **Markdown Support**: Content is stored as Markdown with prose styling
+4. **Rich Text Editor**: Tiptap editor with Markdown import/export
 5. **Real-time Updates**: Convex provides real-time data synchronization
+6. **Flexible Deployment**: Supports both Convex Cloud and self-hosted
 
 ## Development Workflow
 
 ### Starting Development
 ```bash
-pnpm dev  # Runs both Vite frontend (port 5173) and Convex backend
+pnpm dev  # Runs both Vite frontend (port 3000) and Convex backend
 ```
 
 ### Type Safety
@@ -286,6 +387,20 @@ pnpm dev  # Runs both Vite frontend (port 5173) and Convex backend
   ```
 - **NEVER** manually edit `_generated/` files - they are auto-generated from schema
 
+### Self-Hosted Convex Specific
+
+- **ALWAYS** ensure `POSTGRES_URL` is set in `.env.convex.local` before starting
+- **ALWAYS** run `scripts/init-convex-env.sh` before deploying functions (sets JWT keys)
+- **ALWAYS** use `npx convex deploy --yes` for self-hosted deployments
+- **NEVER** run `npx convex dev` for self-hosted - use `npx convex deploy` instead
+- **CONVEX_SITE_ORIGIN** must be set for auth to work (HTTP actions endpoint)
+
+### Deployment Mode Specific
+
+- **For Convex Cloud**: Remove `CONVEX_SELF_HOSTED_*` variables from `.env.local`
+- **For Self-Hosted**: Ensure `CONVEX_SELF_HOSTED_URL` is set in `.env.local`
+- **Detection**: The Convex CLI auto-detects mode based on `CONVEX_SELF_HOSTED_URL` presence
+
 ### TypeScript Best Practices
 
 - **ALWAYS** use `Id<"tableName">` type for Convex document IDs
@@ -296,7 +411,7 @@ pnpm dev  # Runs both Vite frontend (port 5173) and Convex backend
 
 ### JavaScript/TypeScript Specific
 1. **Import Paths**: Use `@/` alias for imports from `src/` (e.g., `@/components/...`)
-2. **Type Generation**: Run `npx convex dev` to regenerate types after schema changes
+2. **Type Generation**: Run `npx convex deploy` (self-hosted) or `npx convex dev` (cloud) to regenerate types
 3. **TypeScript Project References**: This project uses project references - `tsconfig.json` references `tsconfig.app.json` and `tsconfig.node.json`
 4. **Use `null` not `undefined`**: Convex schemas should use `null` for optional fields, not `undefined`
 
@@ -306,23 +421,38 @@ pnpm dev  # Runs both Vite frontend (port 5173) and Convex backend
 7. **State Synchronization**: Local component state (`useState`) and Convex queries can get out of sync - the app handles this with auto-save
 8. **Conditional Queries**: Use `skipToken` from `convex/react` instead of conditional `useQuery` calls
 
-### Convex Specific
-9. **"skip" Token**: Use `skipToken` as the argument to `useQuery` when you don't want to execute a query conditionally
-10. **Hardcoded API Key**: The LLM API key in `convex/ai.ts:46` is exposed. Use `process.env.LLM_API_KEY` for production
-11. **Chef Dev Plugin**: Vite config includes Chef-specific code for screenshot taking. Can be removed if not using `chef.convex.dev`.
-12. **Section ID Injection**: Documents automatically get section IDs added when loaded via `src/lib/documentUtils.ts:addSectionIds()`
-13. **Auto-save Conflict**: Auto-save may overwrite manual edits if timing is unlucky. Manual save button available
-14. **Index Performance**: Using `.filter()` in queries causes full table scans - always use indexes with `.withIndex()` instead
-15. **Schema Indexes**: All indexes automatically include `_creationTime` as the last field - don't add it manually
+### Self-Hosted Convex Specific
+9. **JWT Keys**: Auth requires JWT keys to be set via `scripts/init-convex-env.sh` before deployment
+10. **Admin Key Rotation**: Admin keys may expire - `start.sh` automatically regenerates if needed
+11. **Docker Volumes**: Convex data persists in Docker volume `convex-data`
+12. **POSTGRES_URL Format**: Should be `postgres://user:pass@host:port` (without database name - Convex appends `INSTANCE_NAME`)
+13. **SSL Mode**: For Coder PostgreSQL with self-signed certs, use `?sslmode=disable`
+14. **Port Bindings**: Convex API on 3210, Site Proxy on 3211, Dashboard on 6791
+15. **Environment Variables**: `.env.local` is for frontend/CLI, `.env.convex.local` is for Docker
+
+### Tiptap Editor Specific
+16. **Markdown Serialization**: Content is stored as Markdown, converted to Tiptap JSON for editing
+17. **Character Count**: Built-in via `@tiptap/extension-character-count`
+18. **Placeholder**: Empty state placeholder via `@tiptap/extension-placeholder`
+
+### General
+19. **Hardcoded API Key**: The LLM API key in `convex/ai.ts:46` is exposed. Use environment variable for production
+20. **Chef Dev Plugin**: Vite config includes Chef-specific code for screenshot taking. Can be removed if not using `chef.convex.dev`.
+21. **Section ID Injection**: Documents automatically get section IDs added when loaded via `src/lib/documentUtils.ts:addSectionIds()`
+22. **Auto-save Conflict**: Auto-save may overwrite manual edits if timing is unlucky. Manual save button available
+23. **Index Performance**: Using `.filter()` in queries causes full table scans - always use indexes with `.withIndex()` instead
+24. **Schema Indexes**: All indexes automatically include `_creationTime` as the last field - don't add it manually
 
 ## Commands
 
 ### Development
 | Command | Description |
 |---------|-------------|
+| `pnpm start` | Start both frontend (PM2) and backend (Docker) |
+| `pnpm stop` | Stop both services |
 | `pnpm dev` | Start both frontend and backend in parallel |
-| `pnpm dev:frontend` | Start Vite dev server only (port 5173) |
-| `pnpm dev:backend` | Start Convex dev server only |
+| `pnpm dev:frontend` | Start Vite dev server only (port 3000) |
+| `pnpm dev:backend` | Start Convex backend only (once) |
 | `pnpm build` | Build for production |
 
 ### Quality Gates (Run Before Committing)
@@ -330,12 +460,23 @@ pnpm dev  # Runs both Vite frontend (port 5173) and Convex backend
 |---------|-------------|
 | `pnpm lint` | Type check frontend and backend + Convex validation |
 
-### Convex CLI
+### Convex Commands
+
+**Self-Hosted:**
 | Command | Description |
 |---------|-------------|
-| `npx convex dev` | Start Convex backend with type generation |
+| `npx convex deploy --yes` | Deploy to self-hosted Convex |
+| `npx convex env set VAR val` | Set deployment environment variable |
+| `npx convex env inspect` | View deployment configuration |
+| `pnpm convex:logs` | View Convex backend logs |
+| `pnpm convex:status` | Check Convex Docker status |
+| `pnpm convex:stop` | Stop Convex Docker services |
+
+**Convex Cloud:**
+| Command | Description |
+|---------|-------------|
+| `npx convex dev` | Start dev backend with type generation |
 | `npx convex deploy` | Deploy to production |
-| `npx convex codegen` | Regenerate TypeScript types from schema |
 
 ## Available Skills (Auto-Activated)
 
@@ -346,6 +487,7 @@ Skills activate automatically based on context. You don't need to invoke them ma
 | `coder-template` | All files | Coder workspace environment context and available tools |
 | `react:latest-react` | React component files | Latest React 19 and React Compiler features (mid-2024 to 2026) |
 | `convex:coder-convex` | Convex files | Self-hosted Convex development patterns |
+| `convex:coder-convex-setup` | Setup/initialization | Initial Convex workspace setup in Coder |
 | `playwright:playwright-test` | Playwright test files | End-to-end testing patterns and best practices |
 | `graphql:setup-graphql-operation` | Creating `.graphql` files | Scaffold GraphQL operations with role-based naming |
 | `graphql:graphql-workflow` | GraphQL codegen operations | Manage GraphQL operations, migrations, and codegen |
@@ -374,6 +516,7 @@ This is a single-package project (not a monorepo).
 |------|-----------|
 | **Getting Started** | [README.md](README.md) |
 | **Convex Overview** | [Convex docs](https://docs.convex.dev/understanding/) |
+| **Self-Hosted Convex** | [Self-hosted guide](https://github.com/get-convex/convex-backend/tree/main/self-hosted) |
 | **Convex Functions** | [convex/README.md](convex/README.md) |
-| **Hosting/Deployment** | [Convex deployment guide](https://docs.convex.dev/production/) |
-| **Chef Documentation** | [Chef docs](https://docs.convex.dev/chef) |
+| **Convex Auth** | [Convex Auth docs](https://auth.convex.dev/) |
+| **Tiptap Editor** | [Tiptap docs](https://tiptap.dev/) |

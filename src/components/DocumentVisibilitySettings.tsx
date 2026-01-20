@@ -63,6 +63,7 @@ export function DocumentVisibilitySettings({
         <input
           type="radio"
           name={`visibility-${documentId}`}
+          value="private"
           checked={currentVisibility === "private"}
           onChange={() => handleVisibilityChange("private")}
           disabled={isUpdating}
@@ -75,6 +76,7 @@ export function DocumentVisibilitySettings({
         <input
           type="radio"
           name={`visibility-${documentId}`}
+          value="public_link"
           checked={currentVisibility === "public_link"}
           onChange={() => handleVisibilityChange("public_link")}
           disabled={isUpdating}

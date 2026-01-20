@@ -1,8 +1,7 @@
 "use client"
 
-import { useConvexAuth } from "convex/react"
 import { useNavigate } from "@tanstack/react-router"
-import { useMutation, useQuery } from "convex/react"
+import { useConvexAuth, useMutation, useQuery } from "convex/react"
 import { useEffect, useState } from "react"
 import { toast } from "sonner"
 import { api } from "../../convex/_generated/api"
@@ -19,6 +18,17 @@ export function PublicDocumentView({ humanId }: PublicDocumentViewProps) {
   const publicDoc = useQuery(api.documents.getByHumanIdPublic, { humanId })
   const cloneDocument = useMutation(api.documents.cloneDocument)
   const [isCloning, setIsCloning] = useState(false)
+
+  // Debug logging
+  if (typeof window !== "undefined" && publicDoc !== undefined) {
+    console.log("[PublicDocumentView] Debug:", {
+      humanId,
+      authLoading,
+      isAuthenticated,
+      publicDoc: publicDoc?.document ? { title: publicDoc.document.title, hasContent: !!publicDoc.document.content }
+        : publicDoc?.notFound ? "notFound" : "null",
+    })
+  }
 
   // If user is authenticated, also check if they own this document
   const ownedDocument = useQuery(
@@ -40,7 +50,10 @@ export function PublicDocumentView({ humanId }: PublicDocumentViewProps) {
   if (authLoading || !publicDoc) {
     return (
       <div className="flex justify-center items-center h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-sm text-muted-foreground">Loading... {authLoading ? "auth" : "query"}</p>
+        </div>
       </div>
     )
   }

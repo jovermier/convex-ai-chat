@@ -127,6 +127,18 @@ test.describe("Document Visibility and Public Links", () => {
     await newPage.goto(`/d/${humanId}`)
     await newPage.waitForTimeout(5000)
 
+    // Debug: print page title and check what's on the page
+    const pageTitle = await newPage.title()
+    console.log("📄 New page title:", pageTitle)
+
+    const pageText = await newPage.locator("body").textContent()
+    console.log("📄 Page contains 'Document Not Found':", pageText?.includes("Document Not Found"))
+    console.log("📄 Page contains 'Sign In':", pageText?.includes("Sign In"))
+    console.log("📄 Page contains 'Public Test Document':", pageText?.includes("Public Test Document"))
+    console.log("📄 Page contains 'Loading':", pageText?.includes("Loading"))
+    console.log("📄 Page contains 'Please sign in':", pageText?.includes("Please sign in"))
+    console.log("📄 Page text preview:", pageText?.substring(0, 500))
+
     // Should see the public document in view-only mode
     const publicContent = newPage.locator("text=/Public Test Document/i")
     await expect(publicContent).toBeVisible({ timeout: 10000 })

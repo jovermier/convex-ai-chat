@@ -1,6 +1,5 @@
-import { useConvexAuth } from "convex/react"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { useMutation, useQuery } from "convex/react"
+import { useConvexAuth, useMutation, useQuery } from "convex/react"
 import { useEffect, useRef, useState } from "react"
 import { toast } from "sonner"
 import { api } from "../../convex/_generated/api"
@@ -29,37 +28,48 @@ function DocumentRoute() {
   // Track which document we've initialized section IDs for
   const [initializedDocuments, setInitializedDocuments] = useState<Set<string>>(new Set())
 
-  const documents = useQuery(api.documents.list)
-  const selectedDocument = useQuery(api.documents.getByHumanId, { humanId })
-  // Check if document is public
-  const publicDocument = useQuery(api.documents.getByHumanIdPublic, { humanId })
+  // Refs for tracking server and saved content
+  const lastServerContentRef = useRef<string | null>(null)
+  const lastSavedContentRef = useRef<string>("")
+  const lastSavedTitleRef = useRef<string>("")
 
+  // Mutations
   const createDocument = useMutation(api.documents.create)
   const updateDocument = useMutation(api.documents.update)
 
-  // Track refs for auto-save
-  const lastSavedContentRef = useRef<string | null>(null)
-  const lastSavedTitleRef = useRef<string | null>(null)
-  // Track the last known content from the server to detect external changes
-  const lastServerContentRef = useRef<string | null>(null)
+  // Queries - always called to maintain consistent hook order
+  const publicDocument = useQuery(api.documents.getByHumanIdPublic, { humanId })
+  const documents = useQuery(api.documents.list)
+  const selectedDocument = useQuery(api.documents.getByHumanId, { humanId })
 
   // Auto-create a document if none exist
+  const handleCreateDocument = async () => {
+    try {
+      const result = await createDocument({
+        title: "Untitled Document",
+        content: "",
+      })
+      navigate({ to: "/d/$humanId", params: { humanId: result.humanId } })
+      toast.success("New document created")
+    } catch {
+      toast.error("Failed to create document")
+    }
+  }
+
+  // All useEffect hooks must come before any early returns
   useEffect(() => {
-    if (documents && documents.length === 0) {
+    if (documents && documents.length === 0 && isAuthenticated) {
       handleCreateDocument()
     }
-  }, [documents])
+  }, [documents, isAuthenticated])
 
-  // Synchronize local state with server data
   useEffect(() => {
     if (!selectedDocument) return
 
     const docId = selectedDocument._id.toString()
     const rawContent = selectedDocument.content || ""
 
-    // Check if content was updated externally (by AI)
     if (lastServerContentRef.current !== null && lastServerContentRef.current !== rawContent) {
-      // External change detected - update local state
       const contentWithIds = rawContent ? addSectionIds(rawContent) : ""
       setDocumentContent(contentWithIds)
       setDocumentTitle(selectedDocument.title)
@@ -68,13 +78,11 @@ function DocumentRoute() {
       return
     }
 
-    // First time seeing this document or content has changed
     if (!initializedDocuments.has(docId) || lastServerContentRef.current !== rawContent) {
       const contentWithIds = rawContent ? addSectionIds(rawContent) : ""
       setDocumentContent(contentWithIds)
       setDocumentTitle(selectedDocument.title)
 
-      // Update the document in database if section IDs were added
       if (contentWithIds !== rawContent && contentWithIds.trim()) {
         updateDocument({
           id: selectedDocument._id,
@@ -82,26 +90,11 @@ function DocumentRoute() {
         })
       }
 
-      // Mark as initialized
       setInitializedDocuments(prev => new Set(prev).add(docId))
       lastServerContentRef.current = rawContent
       lastSavedContentRef.current = contentWithIds
     }
-  }, [selectedDocument?._id, selectedDocument?.content, selectedDocument?.title])
-
-  const handleCreateDocument = async () => {
-    try {
-      const result = await createDocument({
-        title: "Untitled Document",
-        content: "",
-      })
-      // Navigate to the new document using its humanId
-      navigate({ to: "/d/$humanId", params: { humanId: result.humanId } })
-      toast.success("New document created")
-    } catch {
-      toast.error("Failed to create document")
-    }
-  }
+  }, [selectedDocument?._id, selectedDocument?.content, selectedDocument?.title, initializedDocuments, updateDocument])
 
   const handleSelectDocument = (id: Id<"documents">) => {
     const doc = documents?.find(d => d._id === id)
@@ -121,7 +114,6 @@ function DocumentRoute() {
       })
       lastSavedContentRef.current = documentContent
       lastSavedTitleRef.current = documentTitle
-      // Update server content ref since we just saved
       lastServerContentRef.current = documentContent
       toast.success("Document saved")
     } catch {
@@ -129,7 +121,6 @@ function DocumentRoute() {
     }
   }
 
-  // Auto-save every 5 seconds
   useEffect(() => {
     if (!selectedDocument) return
 
@@ -145,23 +136,50 @@ function DocumentRoute() {
     return () => clearInterval(interval)
   }, [selectedDocument?._id, documentContent, documentTitle])
 
-  // Redirect to home if document doesn't exist (was deleted or invalid humanId)
+  // Redirect to home if document doesn't exist and wasn't public
   useEffect(() => {
-    if (documents && selectedDocument === null && humanId && !authLoading) {
-      // Document was deleted or humanId is invalid
-      // Check if it's a public document that the user doesn't own
-      if (publicDocument?.document) {
-        // Show public view instead of redirecting
-        return
-      }
-      // Otherwise redirect to home
+    if (
+      !authLoading &&
+      !publicDocument?.document &&
+      selectedDocument === null &&
+      isAuthenticated &&
+      documents
+    ) {
       navigate({ to: "/" })
     }
-  }, [documents, selectedDocument, humanId, navigate, publicDocument, authLoading])
+  }, [authLoading, publicDocument, selectedDocument, isAuthenticated, documents, navigate])
 
-  // If user doesn't own the document but it's public, show public view
-  if (!selectedDocument && publicDocument?.document && !authLoading) {
+  // Calculate conditions for rendering (no hooks after this point)
+  const shouldShowPublicView =
+    publicDocument?.document && !authLoading && (!isAuthenticated || !selectedDocument)
+
+  // Early returns based on conditions (all hooks already called)
+  if (shouldShowPublicView) {
     return <PublicDocumentView humanId={humanId} />
+  }
+
+  if (authLoading || (!isAuthenticated && publicDocument === undefined)) {
+    return (
+      <div className="flex justify-center items-center h-full">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    )
+  }
+
+  if (!isAuthenticated && !publicDocument?.document) {
+    return (
+      <div className="flex justify-center items-center h-full">
+        <div className="text-center">
+          <p className="text-muted-foreground mb-4">Please sign in to access this document</p>
+          <button
+            onClick={() => navigate({ to: "/" })}
+            className="px-4 py-2 bg-primary text-white rounded hover:opacity-90"
+          >
+            Sign In
+          </button>
+        </div>
+      </div>
+    )
   }
 
   if (!documents) {

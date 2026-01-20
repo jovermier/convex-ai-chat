@@ -2,7 +2,7 @@
 
 import "@/index.css"
 import { ConvexAuthProvider } from "@convex-dev/auth/react"
-import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router"
+import { createRootRoute, HeadContent, Outlet, Scripts, useLocation } from "@tanstack/react-router"
 import { ConvexReactClient, useConvexAuth, useQuery } from "convex/react"
 import type { ReactNode } from "react"
 import { Toaster } from "sonner"
@@ -72,6 +72,11 @@ function AppProviders({ children }: { children: ReactNode }) {
 
 function AppContent() {
   const { isAuthenticated, isLoading } = useConvexAuth()
+  const location = useLocation()
+
+  // Check if current route allows anonymous access (public document view)
+  // The /d/:humanId route allows anonymous access for public documents
+  const allowsAnonymousAccess = location.pathname.match(/^\/d\/[^/]+$/)
 
   if (isLoading) {
     return (
@@ -88,10 +93,10 @@ function AppContent() {
       <div className="h-screen flex flex-col bg-background">
         <header className="shrink-0 z-10 bg-background/80 backdrop-blur-sm h-16 flex justify-between items-center border-b shadow-sm px-4">
           <h2 className="text-xl font-semibold text-primary">AI Document Editor</h2>
-          <SignOutButton />
+          {isAuthenticated && <SignOutButton />}
         </header>
         <main className="flex-1 overflow-hidden">
-          {isAuthenticated ? (
+          {isAuthenticated || allowsAnonymousAccess ? (
             <Outlet />
           ) : (
             <div className="flex items-center justify-center h-full">

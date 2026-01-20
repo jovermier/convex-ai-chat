@@ -7,7 +7,9 @@ export const list = query({
   handler: async ctx => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
-      throw new Error("Not authenticated")
+      // Return empty array for unauthenticated users
+      // This allows the UI to handle the case gracefully
+      return []
     }
 
     return await ctx.db
@@ -43,16 +45,15 @@ export const getByHumanId = query({
       return null
     }
 
-    const documents = await ctx.db
+    // Get all user documents
+    const userDocuments = await ctx.db
       .query("documents")
-      .withIndex("by_humanId", q => q.eq("humanId", args.humanId))
+      .withIndex("by_user", q => q.eq("userId", userId))
       .collect()
 
-    // Find the document owned by this user (humanIds should be unique, but we verify ownership)
-    // Also ensure the document has a humanId (not undefined or null)
-    const document = documents.find(
-      doc => doc.userId === userId && doc.humanId !== undefined && doc.humanId !== null
-    )
+    // Find the document with matching humanId
+    // Filter safely to handle documents without humanId field
+    const document = userDocuments.find((doc: any) => doc && doc.humanId === args.humanId)
 
     return document ?? null
   },
@@ -412,8 +413,9 @@ export const getByHumanIdPublic = query({
       return null
     }
 
-    // Check visibility - private documents are not accessible via humanId
-    if (document.visibility === "private") {
+    // Check visibility - only public_link documents are accessible via humanId
+    // undefined visibility means private by default
+    if (document.visibility !== "public_link") {
       return { notFound: true }
     }
 

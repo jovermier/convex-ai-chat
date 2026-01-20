@@ -60,7 +60,11 @@ export function useSessionRecovery() {
     const token = checkRecoveryToken()
     // validateRecoveryTokenResult is the direct result from the query
     // It can be undefined while loading, or { userId } | null when loaded
-    return token !== null && validateRecoveryTokenResult !== undefined && validateRecoveryTokenResult !== null
+    return (
+      token !== null &&
+      validateRecoveryTokenResult !== undefined &&
+      validateRecoveryTokenResult !== null
+    )
   }
 
   return {

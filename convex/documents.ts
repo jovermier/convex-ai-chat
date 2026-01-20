@@ -40,7 +40,7 @@ export const getByHumanId = query({
   handler: async (ctx, args) => {
     const userId = await getAuthUserId(ctx)
     if (!userId) {
-      throw new Error("Not authenticated")
+      return null
     }
 
     const documents = await ctx.db
@@ -54,11 +54,7 @@ export const getByHumanId = query({
       doc => doc.userId === userId && doc.humanId !== undefined && doc.humanId !== null
     )
 
-    if (!document) {
-      throw new Error("Document not found")
-    }
-
-    return document
+    return document ?? null
   },
 })
 

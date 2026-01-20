@@ -7,6 +7,7 @@ import { ConvexReactClient, useConvexAuth, useQuery } from "convex/react"
 import type { ReactNode } from "react"
 import { Toaster } from "sonner"
 import { api } from "../../convex/_generated/api"
+import { SessionRecoveryPrompt } from "../components/SessionRecoveryPrompt"
 import { SignInForm } from "../SignInForm"
 import { SignOutButton } from "../SignOutButton"
 
@@ -23,7 +24,18 @@ export const Route = createRootRoute({
         content: "width=device-width, initial-scale=1",
       },
       {
+        property: "og:image",
+        content: "/og-preview.png",
+      },
+      {
         title: "AI Document Editor",
+      },
+    ],
+    links: [
+      {
+        rel: "icon",
+        type: "image/svg+xml",
+        href: "/vite.svg",
       },
     ],
   }),
@@ -72,6 +84,7 @@ function AppContent() {
   return (
     <>
       <Toaster theme="dark" />
+      <SessionRecoveryPrompt />
       <div className="h-screen flex flex-col bg-background">
         <header className="shrink-0 z-10 bg-background/80 backdrop-blur-sm h-16 flex justify-between items-center border-b shadow-sm px-4">
           <h2 className="text-xl font-semibold text-primary">AI Document Editor</h2>

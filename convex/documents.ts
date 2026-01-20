@@ -398,3 +398,138 @@ export const migrateHumanIds = mutation({
     return { migrated: documents.length }
   },
 })
+
+// Get document by humanId for public access (no auth required, respects visibility)
+export const getByHumanIdPublic = query({
+  args: { humanId: v.string() },
+  handler: async (ctx, args) => {
+    const document = await ctx.db
+      .query("documents")
+      .withIndex("by_humanId", q => q.eq("humanId", args.humanId))
+      .unique()
+
+    if (!document) {
+      return null
+    }
+
+    // Check visibility - private documents are not accessible via humanId
+    if (document.visibility === "private") {
+      return { notFound: true }
+    }
+
+    // Return document without exposing userId
+    return {
+      document: {
+        _id: document._id,
+        title: document.title,
+        content: document.content,
+        lastModified: document.lastModified,
+        humanId: document.humanId,
+        visibility: document.visibility,
+      },
+      isOwner: false,
+    }
+  },
+})
+
+// Update document visibility
+export const updateVisibility = mutation({
+  args: {
+    id: v.id("documents"),
+    visibility: v.union(v.literal("private"), v.literal("public_link")),
+  },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) {
+      throw new Error("Not authenticated")
+    }
+
+    const document = await ctx.db.get(args.id)
+    if (!document || document.userId !== userId) {
+      throw new Error("Document not found")
+    }
+
+    await ctx.db.patch(args.id, { visibility: args.visibility })
+  },
+})
+
+// Clone a public document to the user's account
+export const cloneDocument = mutation({
+  args: { humanId: v.string() },
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx)
+    if (!userId) {
+      throw new Error("Not authenticated")
+    }
+
+    // Find the document by humanId
+    const sourceDoc = await ctx.db
+      .query("documents")
+      .withIndex("by_humanId", q => q.eq("humanId", args.humanId))
+      .unique()
+
+    if (!sourceDoc) {
+      throw new Error("Document not found")
+    }
+
+    // Check if document is shareable
+    if (sourceDoc.visibility !== "public_link") {
+      throw new Error("Document is not publicly accessible")
+    }
+
+    // Generate a unique humanId for the clone
+    let newHumanId: string
+    let attempts = 0
+    const maxAttempts = 100
+
+    const adjectives = [
+      "happy",
+      "clever",
+      "swift",
+      "bright",
+      "calm",
+      "bold",
+      "kind",
+      "warm",
+      "cool",
+      "fresh",
+    ]
+    const nouns = ["panda", "tiger", "eagle", "fox", "wolf", "bear", "hawk", "lion", "owl"]
+
+    do {
+      const adjective = adjectives[Math.floor(Math.random() * adjectives.length)]
+      const noun = nouns[Math.floor(Math.random() * nouns.length)]
+      const number = Math.floor(Math.random() * 100)
+        .toString()
+        .padStart(2, "0")
+      newHumanId = `${adjective}-${noun}-${number}`
+
+      const existing = await ctx.db
+        .query("documents")
+        .withIndex("by_humanId", q => q.eq("humanId", newHumanId))
+        .first()
+
+      if (!existing) {
+        break
+      }
+
+      attempts++
+    } while (attempts < maxAttempts)
+
+    if (attempts >= maxAttempts) {
+      throw new Error("Failed to generate unique human ID")
+    }
+
+    // Create the clone
+    const newId = await ctx.db.insert("documents", {
+      title: `${sourceDoc.title} (Copy)`,
+      content: sourceDoc.content,
+      userId,
+      lastModified: Date.now(),
+      humanId: newHumanId,
+      visibility: "private",
+    })
+
+    return { id: newId, humanId: newHumanId }
+  },
+})

@@ -1,3 +1,4 @@
+import { useConvexAuth } from "convex/react"
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useMutation, useQuery } from "convex/react"
 import { useEffect, useRef, useState } from "react"
@@ -6,7 +7,9 @@ import { api } from "../../convex/_generated/api"
 import type { Id } from "../../convex/_generated/dataModel"
 import { ChatPane } from "../components/ChatPane"
 import { DocumentList } from "../components/DocumentList"
+import { DocumentVisibilitySettings } from "../components/DocumentVisibilitySettings"
 import { EditorPane } from "../components/EditorPane"
+import { PublicDocumentView } from "../components/PublicDocumentView"
 import { addSectionIds } from "../lib/documentUtils"
 
 export const Route = createFileRoute("/d/$humanId")({
@@ -17,6 +20,7 @@ export const Route = createFileRoute("/d/$humanId")({
 function DocumentRoute() {
   const { humanId } = Route.useParams()
   const navigate = useNavigate()
+  const { isAuthenticated, isLoading: authLoading } = useConvexAuth()
 
   const [documentContent, setDocumentContent] = useState("")
   const [documentTitle, setDocumentTitle] = useState("")
@@ -27,6 +31,8 @@ function DocumentRoute() {
 
   const documents = useQuery(api.documents.list)
   const selectedDocument = useQuery(api.documents.getByHumanId, { humanId })
+  // Check if document is public
+  const publicDocument = useQuery(api.documents.getByHumanIdPublic, { humanId })
 
   const createDocument = useMutation(api.documents.create)
   const updateDocument = useMutation(api.documents.update)
@@ -141,11 +147,22 @@ function DocumentRoute() {
 
   // Redirect to home if document doesn't exist (was deleted or invalid humanId)
   useEffect(() => {
-    if (documents && selectedDocument === null && humanId) {
-      // Document was deleted or humanId is invalid - redirect to home silently
+    if (documents && selectedDocument === null && humanId && !authLoading) {
+      // Document was deleted or humanId is invalid
+      // Check if it's a public document that the user doesn't own
+      if (publicDocument?.document) {
+        // Show public view instead of redirecting
+        return
+      }
+      // Otherwise redirect to home
       navigate({ to: "/" })
     }
-  }, [documents, selectedDocument, humanId, navigate])
+  }, [documents, selectedDocument, humanId, navigate, publicDocument, authLoading])
+
+  // If user doesn't own the document but it's public, show public view
+  if (!selectedDocument && publicDocument?.document && !authLoading) {
+    return <PublicDocumentView humanId={humanId} />
+  }
 
   if (!documents) {
     return (
@@ -196,6 +213,15 @@ function DocumentRoute() {
             onTitleChange={setDocumentTitle}
             onContentChange={setDocumentContent}
             onSave={handleSaveDocument}
+            statusExtra={
+              selectedDocument && (
+                <DocumentVisibilitySettings
+                  documentId={selectedDocument._id}
+                  visibility={selectedDocument.visibility}
+                  humanId={selectedDocument.humanId}
+                />
+              )
+            }
           />
         </div>
       </div>

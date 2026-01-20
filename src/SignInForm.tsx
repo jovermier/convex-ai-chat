@@ -2,11 +2,13 @@
 import { useAuthActions } from "@convex-dev/auth/react"
 import { useState } from "react"
 import { toast } from "sonner"
+import { useSessionRecovery } from "./hooks/useSessionRecovery"
 
 export function SignInForm() {
   const { signIn } = useAuthActions()
   const [flow, setFlow] = useState<"signIn" | "signUp">("signIn")
   const [submitting, setSubmitting] = useState(false)
+  const { storeRecoveryToken } = useSessionRecovery()
 
   return (
     <div className="w-full">
@@ -65,7 +67,23 @@ export function SignInForm() {
         <span className="mx-4 text-muted-foreground">or</span>
         <hr className="my-4 grow border-border" />
       </div>
-      <button className="auth-button" onClick={() => void signIn("anonymous")}>
+      <button
+        className="auth-button"
+        onClick={async () => {
+          try {
+            await signIn("anonymous")
+            // Wait a moment for auth to be established before generating token
+            // Don't await this - let it happen in the background
+            setTimeout(() => {
+              storeRecoveryToken().catch(err => {
+                console.error("Failed to store recovery token:", err)
+              })
+            }, 1000)
+          } catch (error) {
+            console.error("Sign in failed:", error)
+          }
+        }}
+      >
         Sign in anonymously
       </button>
     </div>

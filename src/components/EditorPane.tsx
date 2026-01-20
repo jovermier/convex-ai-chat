@@ -2,6 +2,7 @@ import CharacterCount from "@tiptap/extension-character-count"
 import Placeholder from "@tiptap/extension-placeholder"
 import { EditorContent, useEditor } from "@tiptap/react"
 import StarterKit from "@tiptap/starter-kit"
+import type { ReactNode } from "react"
 import { useEffect, useRef } from "react"
 import { toast } from "sonner"
 
@@ -11,6 +12,7 @@ interface EditorPaneProps {
   onTitleChange: (title: string) => void
   onContentChange: (content: string) => void
   onSave: () => void
+  statusExtra?: ReactNode
 }
 
 export function EditorPane({
@@ -19,6 +21,7 @@ export function EditorPane({
   onTitleChange,
   onContentChange,
   onSave,
+  statusExtra,
 }: EditorPaneProps) {
   const isUpdatingRef = useRef(false) // Track if we're updating from external source
   const lastKnownContentRef = useRef(content) // Track last known content
@@ -287,10 +290,11 @@ export function EditorPane({
       </div>
 
       {/* Status Bar */}
-      <div className="p-2 border-t bg-muted text-xs flex justify-between">
+      <div className="p-2 border-t bg-muted text-xs flex justify-between items-center gap-2">
         <span className="text-foreground">
           {editor.storage.characterCount?.characters() || 0} characters
         </span>
+        {statusExtra && <div className="flex items-center">{statusExtra}</div>}
         <span className="text-foreground">{editor.isFocused ? "Editing..." : "Ready"}</span>
       </div>
     </div>

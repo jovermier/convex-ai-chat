@@ -2,22 +2,22 @@
 set -e
 
 # Stop script for AI Document Editor App
-# Stops the frontend (PM2) and backend (Docker)
+# Stops the frontend (PM2), watchers (PM2), and backend (Docker)
 
 PROJECT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$PROJECT_DIR"
 
 echo "🛑 Stopping AI Document Editor App..."
 
-# Stop frontend with PM2
-echo "🎨 Stopping frontend..."
-if pm2 list | grep -q "frontend"; then
-    pm2 stop frontend
-    pm2 delete frontend
-    echo "✅ Frontend stopped"
-else
-    echo "ℹ️  Frontend not running"
-fi
+# Stop PM2 processes (frontend + watchers)
+echo "🎨 Stopping PM2 processes..."
+for app in frontend convex-env-sync convex-code-sync; do
+    if pm2 list | grep -q "$app"; then
+        pm2 stop "$app" 2>/dev/null || true
+        pm2 delete "$app" 2>/dev/null || true
+        echo "  ✅ Stopped: $app"
+    fi
+done
 
 # Stop Convex backend with Docker Compose
 echo "📦 Stopping Convex backend..."

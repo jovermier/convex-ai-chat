@@ -216,20 +216,31 @@ npx convex deploy --yes
 
 echo "✅ Convex functions deployed"
 
-# Start frontend with PM2
-echo "🎨 Starting frontend with PM2..."
+# Start services with PM2 using ecosystem config
+echo "🎨 Starting services with PM2 (ecosystem.config.cjs)..."
 
-# Stop existing process if running
-if pm2 list | grep -q "frontend"; then
-    echo "  Stopping existing PM2 process..."
-    pm2 stop frontend 2>/dev/null || true
-    pm2 delete frontend 2>/dev/null || true
+# Stop existing processes if running
+for app in frontend convex-env-sync convex-code-sync; do
+    if pm2 list | grep -q "$app"; then
+        echo "  Stopping existing PM2 process: $app..."
+        pm2 stop "$app" 2>/dev/null || true
+        pm2 delete "$app" 2>/dev/null || true
+    fi
+done
+
+# Check if inotifywait is available for the watcher scripts
+if ! command -v inotifywait &> /dev/null; then
+    echo "⚠️  WARNING: inotifywait not found. File watchers will not work."
+    echo "   Install with: apt-get install inotify-tools"
+    echo ""
+    echo "   Starting frontend only (watchers disabled)..."
+    pm2 start "pnpm dev:frontend" --name "frontend"
+else
+    # Start all apps from ecosystem config
+    pm2 start ecosystem.config.cjs
+    echo "✅ Started: frontend, convex-env-sync, convex-code-sync"
 fi
 
-# Start frontend - PM2 will use the project's environment
-pm2 start "pnpm dev:frontend" --name "frontend"
-
-echo "✅ Frontend started"
 echo ""
 echo "🎉 App is ready!"
 echo "   Frontend:  $FRONTEND_URL"
@@ -239,5 +250,7 @@ echo ""
 echo "Commands:"
 echo "  pnpm start       - Start both services"
 echo "  pnpm stop        - Stop both services"
-echo "  pm2 logs         - View frontend logs"
+echo "  pm2 logs         - View frontend/logs"
+echo "  pm2 logs convex-env-sync  - View env sync logs"
+echo "  pm2 logs convex-code-sync - View code deploy logs"
 echo "  pnpm convex:logs - View backend logs"

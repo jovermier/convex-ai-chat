@@ -1,0 +1,12 @@
+# CSS files with Tailwind directives
+*.css
+
+# Generated files
+convex/_generated
+
+# Build outputs
+dist
+build
+
+# Dependencies
+node_modules

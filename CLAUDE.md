@@ -162,9 +162,12 @@ Building or refining UI components through visual iteration.
 Before committing, run these in a closed loop until all pass:
 
 ```bash
-pnpm lint  # Type check frontend + backend + Convex validation
+pnpm check  # Full quality check (no auto-fix)
+pnpm lint   # Auto-fix + full quality check
 pnpm build  # Build for production
 ```
+
+**Note:** Biome handles linting, formatting, and import organization. TypeScript compiler (`tsc`) provides type checking as the authoritative source.
 
 ### Severity Classification
 
@@ -182,12 +185,44 @@ All findings are classified using P1/P2/P3 severity:
 | **Vite** | 7.3.1 | Build tool & dev server |
 | **Convex** | 1.31.4 | Backend (database, functions, auth) |
 | **TypeScript** | 5.9.3 | Type safety |
+| **Biome** | 2.3.11 | Linting, formatting, import organization |
 | **Tailwind CSS** | 4.1.18 | Styling |
 | **@tailwindcss/typography** | 0.5.19 | Typography plugin for prose styling |
 | **@convex-dev/auth** | 0.0.90 | Authentication (Anonymous provider) |
 | **sonner** | 2.0.7 | Toast notifications |
 | **@tiptap/react** | 3.15.3 | Rich text editor (ProseMirror-based) |
 | **pm2** | (via npm-run-all) | Process manager for production mode |
+
+## Biome Configuration
+
+This project uses **Biome** for fast linting, formatting, and import organization. Biome is a Rust-based tool that provides significant performance improvements over ESLint/Prettier.
+
+### Configuration Files
+
+- [`biome.json`](biome.json) - Main Biome configuration
+- [`.vscode/settings.json`](.vscode/settings.json) - VSCode integration
+- [`.vscode/extensions.json`](.vscode/extensions.json) - Recommended Biome extension
+
+### Available Commands
+
+| Command | Description |
+|---------|-------------|
+| `pnpm check` | Full quality check (no auto-fix) |
+| `pnpm lint` | Auto-fix Biome issues + full quality check |
+| `pnpm lint:check` | Biome lint check only (no fix) |
+| `pnpm format` | Format code with Biome |
+| `pnpm format:check` | Check formatting without modifying files |
+
+### Key Configuration
+
+- **Formatter**: 100 char line width, double quotes, trailing commas (ES5), semicolons as-needed
+- **Linter**: Recommended rules enabled, with specific customizations:
+  - `noExplicitAny`: off (allow `any` type)
+  - `useButtonType`: off (button type prop not required)
+  - `useExhaustiveDependencies`: warn (React hooks dependency warnings)
+  - `security`: warn (detect potential security flaws)
+  - `performance`: warn (catch performance issues)
+  - Tailwind CSS directives enabled in parser
 
 ## Package Manager
 
@@ -201,7 +236,9 @@ pnpm dev              # Start both frontend and backend (development mode)
 pnpm dev:frontend     # Start only Vite dev server
 pnpm dev:backend      # Start only Convex backend (once)
 pnpm build            # Build for production
-pnpm lint             # Run type checks and linting
+pnpm check            # Full quality check (no auto-fix)
+pnpm lint             # Auto-fix + full quality check
+pnpm format           # Format code with Biome
 ```
 
 ## Runtime Environment
@@ -442,6 +479,7 @@ pnpm dev  # Runs both Vite frontend (port 3000) and Convex backend
 22. **Auto-save Conflict**: Auto-save may overwrite manual edits if timing is unlucky. Manual save button available
 23. **Index Performance**: Using `.filter()` in queries causes full table scans - always use indexes with `.withIndex()` instead
 24. **Schema Indexes**: All indexes automatically include `_creationTime` as the last field - don't add it manually
+25. **Playwright Headed Mode**: Cannot run Playwright in headed mode (with browser UI) in this Coder workspace - the environment lacks a display server. Always use headless mode for tests.
 
 ## Commands
 
@@ -458,7 +496,9 @@ pnpm dev  # Runs both Vite frontend (port 3000) and Convex backend
 ### Quality Gates (Run Before Committing)
 | Command | Description |
 |---------|-------------|
-| `pnpm lint` | Type check frontend and backend + Convex validation |
+| `pnpm check` | Full quality check (no auto-fix) |
+| `pnpm lint` | Auto-fix Biome + full quality check |
+| `pnpm format` | Format code with Biome |
 
 ### Convex Commands
 

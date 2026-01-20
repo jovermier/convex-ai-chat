@@ -142,7 +142,9 @@ CONVEX_DEPLOYMENT_URL=<convex-api-url>
 | `pnpm dev:frontend` | Start only Vite dev server |
 | `pnpm dev:backend` | Start only Convex backend (once) |
 | `pnpm build` | Build for production |
-| `pnpm lint` | Type check frontend and backend + Convex validation |
+| `pnpm check` | Full quality check (no auto-fix) |
+| `pnpm lint` | Auto-fix Biome + full quality check |
+| `pnpm format` | Format code with Biome |
 | `pnpm test` | Run Playwright tests |
 | `pnpm convex:logs` | View Convex backend logs |
 | `pnpm convex:status` | Check Convex Docker status |

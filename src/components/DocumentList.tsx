@@ -1,19 +1,19 @@
-import { useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import { Id } from "../../convex/_generated/dataModel";
-import { toast } from "sonner";
+import { useMutation } from "convex/react"
+import { toast } from "sonner"
+import { api } from "../../convex/_generated/api"
+import type { Id } from "../../convex/_generated/dataModel"
 
 interface Document {
-  _id: Id<"documents">;
-  title: string;
-  lastModified: number;
+  _id: Id<"documents">
+  title: string
+  lastModified: number
 }
 
 interface DocumentListProps {
-  documents: Document[];
-  selectedDocumentId: Id<"documents"> | null;
-  onSelectDocument: (id: Id<"documents">) => void;
-  onCreateDocument: () => void;
+  documents: Document[]
+  selectedDocumentId: Id<"documents"> | null
+  onSelectDocument: (id: Id<"documents">) => void
+  onCreateDocument: () => void
 }
 
 export function DocumentList({
@@ -22,20 +22,20 @@ export function DocumentList({
   onSelectDocument,
   onCreateDocument,
 }: DocumentListProps) {
-  const deleteDocument = useMutation(api.documents.remove);
+  const deleteDocument = useMutation(api.documents.remove)
 
   const handleDeleteDocument = async (id: Id<"documents">, e: React.MouseEvent) => {
-    e.stopPropagation();
+    e.stopPropagation()
 
     if (confirm("Are you sure you want to delete this document?")) {
       try {
-        await deleteDocument({ id });
-        toast.success("Document deleted");
-      } catch (error) {
-        toast.error("Failed to delete document");
+        await deleteDocument({ id })
+        toast.success("Document deleted")
+      } catch (_error) {
+        toast.error("Failed to delete document")
       }
     }
-  };
+  }
 
   return (
     <div className="h-full flex flex-col">
@@ -49,7 +49,7 @@ export function DocumentList({
       </div>
 
       <div className="flex-1 overflow-y-auto bg-background">
-        {documents.map((doc) => (
+        {documents.map(doc => (
           <div
             key={doc._id}
             onClick={() => onSelectDocument(doc._id)}
@@ -65,11 +65,16 @@ export function DocumentList({
                 </p>
               </div>
               <button
-                onClick={(e) => handleDeleteDocument(doc._id, e)}
+                onClick={e => handleDeleteDocument(doc._id, e)}
                 className="ml-2 p-1 text-muted-foreground hover:text-destructive transition-colors"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                  />
                 </svg>
               </button>
             </div>
@@ -77,5 +82,5 @@ export function DocumentList({
         ))}
       </div>
     </div>
-  );
+  )
 }

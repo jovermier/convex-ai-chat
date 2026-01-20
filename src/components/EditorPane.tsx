@@ -1,16 +1,16 @@
-import { useEffect, useRef } from "react";
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
-import { toast } from "sonner";
-import CharacterCount from "@tiptap/extension-character-count";
-import Placeholder from "@tiptap/extension-placeholder";
+import CharacterCount from "@tiptap/extension-character-count"
+import Placeholder from "@tiptap/extension-placeholder"
+import { EditorContent, useEditor } from "@tiptap/react"
+import StarterKit from "@tiptap/starter-kit"
+import { useEffect, useRef } from "react"
+import { toast } from "sonner"
 
 interface EditorPaneProps {
-  title: string;
-  content: string;
-  onTitleChange: (title: string) => void;
-  onContentChange: (content: string) => void;
-  onSave: () => void;
+  title: string
+  content: string
+  onTitleChange: (title: string) => void
+  onContentChange: (content: string) => void
+  onSave: () => void
 }
 
 export function EditorPane({
@@ -20,8 +20,8 @@ export function EditorPane({
   onContentChange,
   onSave,
 }: EditorPaneProps) {
-  const isUpdatingRef = useRef(false); // Track if we're updating from external source
-  const lastKnownContentRef = useRef(content); // Track last known content
+  const isUpdatingRef = useRef(false) // Track if we're updating from external source
+  const lastKnownContentRef = useRef(content) // Track last known content
 
   const editor = useEditor({
     extensions: [
@@ -39,34 +39,34 @@ export function EditorPane({
     onUpdate: ({ editor }) => {
       // Only trigger callback if this is a user edit (not an external update)
       if (!isUpdatingRef.current) {
-        onContentChange(editor.getHTML());
+        onContentChange(editor.getHTML())
       }
       // Reset the flag after update
-      isUpdatingRef.current = false;
+      isUpdatingRef.current = false
     },
     editorProps: {
       attributes: {
         class: "h-full p-6 outline-none focus:outline-none",
       },
     },
-  });
+  })
 
   // Update editor content when the content prop changes from external sources (e.g., AI edits)
   useEffect(() => {
     if (editor && content !== lastKnownContentRef.current) {
-      const currentHTML = editor.getHTML();
+      const currentHTML = editor.getHTML()
       // Only update if content is meaningfully different
       if (currentHTML !== content) {
-        isUpdatingRef.current = true; // Mark as external update
-        editor.commands.setContent(content, false); // false = don't emit update event
-        lastKnownContentRef.current = content;
+        isUpdatingRef.current = true // Mark as external update
+        editor.commands.setContent(content, false) // false = don't emit update event
+        lastKnownContentRef.current = content
       }
     }
-  }, [content, editor]);
+  }, [content, editor])
 
   const handleExportPDF = () => {
-    window.print();
-  };
+    window.print()
+  }
 
   const handleExportDOCX = () => {
     const htmlContent = `
@@ -81,24 +81,24 @@ export function EditorPane({
           ${content}
         </body>
       </html>
-    `;
+    `
 
-    const blob = new Blob([htmlContent], { type: "application/msword" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `${title}.doc`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("Document exported");
-  };
+    const blob = new Blob([htmlContent], { type: "application/msword" })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement("a")
+    a.href = url
+    a.download = `${title}.doc`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success("Document exported")
+  }
 
   if (!editor) {
     return (
       <div className="h-full flex items-center justify-center bg-card">
         <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
       </div>
-    );
+    )
   }
 
   return (
@@ -109,7 +109,7 @@ export function EditorPane({
           <input
             type="text"
             value={title}
-            onChange={(e) => onTitleChange(e.target.value)}
+            onChange={e => onTitleChange(e.target.value)}
             className="text-xl font-semibold bg-transparent border-none outline-none flex-1 placeholder:text-muted-foreground text-card-foreground"
             placeholder="Document title..."
           />
@@ -157,9 +157,7 @@ export function EditorPane({
           <button
             onClick={() => editor.chain().focus().toggleBold().run()}
             className={`p-2 border rounded transition-colors text-foreground ${
-              editor.isActive("bold")
-                ? "bg-primary text-primary-foreground"
-                : "hover:bg-muted"
+              editor.isActive("bold") ? "bg-primary text-primary-foreground" : "hover:bg-muted"
             }`}
             title="Bold"
           >
@@ -168,9 +166,7 @@ export function EditorPane({
           <button
             onClick={() => editor.chain().focus().toggleItalic().run()}
             className={`p-2 border rounded transition-colors text-foreground ${
-              editor.isActive("italic")
-                ? "bg-primary text-primary-foreground"
-                : "hover:bg-muted"
+              editor.isActive("italic") ? "bg-primary text-primary-foreground" : "hover:bg-muted"
             }`}
             title="Italic"
           >
@@ -179,9 +175,7 @@ export function EditorPane({
           <button
             onClick={() => editor.chain().focus().toggleStrike().run()}
             className={`p-2 border rounded transition-colors text-foreground ${
-              editor.isActive("strike")
-                ? "bg-primary text-primary-foreground"
-                : "hover:bg-muted"
+              editor.isActive("strike") ? "bg-primary text-primary-foreground" : "hover:bg-muted"
             }`}
             title="Strikethrough"
           >
@@ -190,13 +184,11 @@ export function EditorPane({
           <button
             onClick={() => editor.chain().focus().toggleCode().run()}
             className={`p-2 border rounded transition-colors text-foreground ${
-              editor.isActive("code")
-                ? "bg-primary text-primary-foreground"
-                : "hover:bg-muted"
+              editor.isActive("code") ? "bg-primary text-primary-foreground" : "hover:bg-muted"
             }`}
             title="Code"
           >
-            {'</>'}
+            {"</>"}
           </button>
           <div className="w-px h-6 bg-border"></div>
           <button
@@ -235,9 +227,7 @@ export function EditorPane({
           <button
             onClick={() => editor.chain().focus().setParagraph().run()}
             className={`px-3 py-2 border rounded transition-colors text-foreground ${
-              editor.isActive("paragraph")
-                ? "bg-primary text-primary-foreground"
-                : "hover:bg-muted"
+              editor.isActive("paragraph") ? "bg-primary text-primary-foreground" : "hover:bg-muted"
             }`}
             title="Paragraph"
           >
@@ -268,15 +258,13 @@ export function EditorPane({
           </button>
           <button
             onClick={() => {
-              const url = prompt("Enter URL:");
+              const url = prompt("Enter URL:")
               if (url) {
-                editor.chain().focus().setLink({ href: url }).run();
+                editor.chain().focus().setLink({ href: url }).run()
               }
             }}
             className={`p-2 border rounded transition-colors text-foreground ${
-              editor.isActive("link")
-                ? "bg-primary text-primary-foreground"
-                : "hover:bg-muted"
+              editor.isActive("link") ? "bg-primary text-primary-foreground" : "hover:bg-muted"
             }`}
             title="Insert Link"
           >
@@ -294,7 +282,7 @@ export function EditorPane({
       </div>
 
       {/* Editor */}
-      <div className="flex-1 overflow-y-auto bg-card">
+      <div className="flex-1 overflow-y-auto bg-background">
         <EditorContent editor={editor} style={{ minHeight: "100%" }} />
       </div>
 
@@ -306,5 +294,5 @@ export function EditorPane({
         <span className="text-foreground">{editor.isFocused ? "Editing..." : "Ready"}</span>
       </div>
     </div>
-  );
+  )
 }

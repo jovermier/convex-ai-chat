@@ -1,21 +1,20 @@
-import { defineConfig, devices } from "@playwright/test";
-import { config } from "dotenv";
+import { defineConfig, devices } from "@playwright/test"
+import { config } from "dotenv"
 
 // Load environment variables from .env.local
-const envResult = config({ path: ".env.local" });
+const envResult = config({ path: ".env.local" })
 
 if (envResult.error) {
-  console.warn(
-    "Warning: .env.local not found, relying on existing environment variables."
-  );
+  console.warn("Warning: .env.local not found, relying on existing environment variables.")
 }
 
 // Use VITE_CONVEX_URL from .env.local or fall back to localhost for testing
-const baseURL = process.env.PLAYWRIGHT_BASE_URL ||
-                 process.env.VITE_CONVEX_URL?.replace(/\/$/, '') ||
-                 "http://127.0.0.1:5173";
+const baseURL =
+  process.env.PLAYWRIGHT_BASE_URL ||
+  process.env.VITE_CONVEX_URL?.replace(/\/$/, "") ||
+  "http://127.0.0.1:5173"
 
-console.log("Playwright baseURL:", baseURL);
+console.log("Playwright baseURL:", baseURL)
 
 export default defineConfig({
   testDir: "./tests",
@@ -35,4 +34,4 @@ export default defineConfig({
       use: { ...devices["Desktop Chrome"] },
     },
   ],
-});
+})

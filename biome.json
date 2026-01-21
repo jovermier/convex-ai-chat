@@ -76,6 +76,11 @@
   },
   "overrides": [
     {
+      "includes": [".vscode/**"],
+      "linter": { "enabled": false },
+      "formatter": { "enabled": false }
+    },
+    {
       "includes": ["*.css"],
       "css": {
         "parser": {

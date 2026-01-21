@@ -147,11 +147,30 @@ if [ "$SELF_HOSTED" = true ]; then
         echo "JWT_ISSUER=$CONVEX_SITE_ORIGIN"
         echo "JWKS=$JWKS"
 
+        # Add LLM/OpenAI configuration for agent.ts
+        # These are required for the AI agent functionality
+        # Use OPENAI_BASE_URL from environment if available, otherwise use fallback
+        if [ -n "$OPENAI_BASE_URL" ]; then
+            echo "OPENAI_BASE_URL=$OPENAI_BASE_URL"
+        elif [ -n "$LITELLM_BASE_URL" ]; then
+            echo "OPENAI_BASE_URL=${LITELLM_BASE_URL}/v1"
+        else
+            echo "OPENAI_BASE_URL=https://llm-gateway.hahomelabs.com/v1"
+        fi
+        # Use LITELLM_APP_API_KEY from environment if available, otherwise use placeholder
+        if [ -n "$LITELLM_APP_API_KEY" ]; then
+            echo "OPENAI_API_KEY=$LITELLM_APP_API_KEY"
+        else
+            echo "OPENAI_API_KEY=sk-placeholder-set-via-env-var"
+        fi
+
         # Copy other variables that might already exist
         if [ -f "$CONTAINER_ENV_FILE" ]; then
             grep -v "^JWT_PRIVATE_KEY_BASE64=" "$CONTAINER_ENV_FILE" 2>/dev/null | \
             grep -v "^JWT_ISSUER=" "$CONTAINER_ENV_FILE" 2>/dev/null | \
-            grep -v "^JWKS=" "$CONTAINER_ENV_FILE" 2>/dev/null || true
+            grep -v "^JWKS=" "$CONTAINER_ENV_FILE" 2>/dev/null | \
+            grep -v "^OPENAI_BASE_URL=" "$CONTAINER_ENV_FILE" 2>/dev/null | \
+            grep -v "^OPENAI_API_KEY=" "$CONTAINER_ENV_FILE" 2>/dev/null || true
         fi
     } > "$TEMP_FILE"
 

@@ -133,20 +133,17 @@ mv "$TEMP_FILE" "$DEPLOYMENT_ENV_FILE"
 
 # Now set all variables
 if [ "$SELF_HOSTED" = true ]; then
-    # Self-hosted mode: write directly to .env.convex.local
-    echo "📤 Setting deployment environment variables in $CONTAINER_ENV_FILE..."
+    # Self-hosted mode: JWT vars go to .env.convex.deployment, LLM vars go to .env.convex.local
+    echo "📤 Setting deployment environment variables..."
 
-    # Create a temp file with the new variables
+    # JWT vars are already in .env.convex.deployment (updated above)
+    echo "  ✅ JWT variables in $DEPLOYMENT_ENV_FILE"
+
+    # Create a temp file for LLM/OpenAI configuration only
     TEMP_FILE=$(mktemp)
 
-    # Copy existing content and add/update our variables
-    # Variables are base64 encoded for multi-line values
+    # Copy existing content from container env file, excluding LLM vars
     {
-        # Add/update JWT_PRIVATE_KEY_BASE64
-        echo "JWT_PRIVATE_KEY_BASE64=$(echo "$JWT_PRIVATE_KEY" | base64 -w 0)"
-        echo "JWT_ISSUER=$CONVEX_SITE_ORIGIN"
-        echo "JWKS=$JWKS"
-
         # Add LLM/OpenAI configuration for agent.ts
         # These are required for the AI agent functionality
         # Use OPENAI_BASE_URL from environment if available, otherwise use fallback
@@ -164,7 +161,7 @@ if [ "$SELF_HOSTED" = true ]; then
             echo "OPENAI_API_KEY=sk-placeholder-set-via-env-var"
         fi
 
-        # Copy other variables that might already exist
+        # Copy other variables that might already exist (excluding JWT vars which belong in deployment)
         if [ -f "$CONTAINER_ENV_FILE" ]; then
             grep -v "^JWT_PRIVATE_KEY_BASE64=" "$CONTAINER_ENV_FILE" 2>/dev/null | \
             grep -v "^JWT_ISSUER=" "$CONTAINER_ENV_FILE" 2>/dev/null | \
@@ -175,7 +172,7 @@ if [ "$SELF_HOSTED" = true ]; then
     } > "$TEMP_FILE"
 
     mv "$TEMP_FILE" "$CONTAINER_ENV_FILE"
-    echo "  ✅ Variables written to $CONTAINER_ENV_FILE"
+    echo "  ✅ LLM variables in $CONTAINER_ENV_FILE"
 
 else
     # Cloud mode: use npx convex env set
@@ -265,7 +262,8 @@ fi
 
 echo "✅ Convex deployment environment variables initialized"
 if [ "$SELF_HOSTED" = true ]; then
-    echo "   Variables written to $CONTAINER_ENV_FILE"
+    echo "   JWT variables in $DEPLOYMENT_ENV_FILE"
+    echo "   LLM variables in $CONTAINER_ENV_FILE"
     echo "   Restart convex-backend container to apply: docker compose -f docker-compose.convex.yml restart convex-backend"
 else
     echo "   Verify in dashboard: Environment Variables section"

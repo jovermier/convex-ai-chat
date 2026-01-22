@@ -19,14 +19,14 @@ fi
 
 # Initial sync on start
 echo "📝 Running initial sync..."
-bash scripts/init-convex-env.sh
+bash scripts/load-convex-env.sh
 
 # Watch for file changes
 # --monitor runs continuously, -e specifies events to watch
 while inotifywait -q -e modify,close_write,moved_to "$DEPLOYMENT_ENV_FILE" 2>/dev/null; do
     echo "📝 $DEPLOYMENT_ENV_FILE changed, syncing to Convex..."
     sleep 0.5  # Small delay to ensure file write is complete
-    bash scripts/init-convex-env.sh
+    bash scripts/load-convex-env.sh
     echo "✅ Synced at $(date '+%H:%M:%S')"
     echo ""
 done

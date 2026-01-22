@@ -25,8 +25,11 @@ export function PublicDocumentView({ humanId }: PublicDocumentViewProps) {
       humanId,
       authLoading,
       isAuthenticated,
-      publicDoc: publicDoc?.document ? { title: publicDoc.document.title, hasContent: !!publicDoc.document.content }
-        : publicDoc?.notFound ? "notFound" : "null",
+      publicDoc: publicDoc?.document
+        ? { title: publicDoc.document.title, hasContent: !!publicDoc.document.content }
+        : publicDoc?.notFound
+          ? "notFound"
+          : "null",
     })
   }
 
@@ -52,7 +55,9 @@ export function PublicDocumentView({ humanId }: PublicDocumentViewProps) {
       <div className="flex justify-center items-center h-screen">
         <div className="text-center">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-sm text-muted-foreground">Loading... {authLoading ? "auth" : "query"}</p>
+          <p className="text-sm text-muted-foreground">
+            Loading... {authLoading ? "auth" : "query"}
+          </p>
         </div>
       </div>
     )

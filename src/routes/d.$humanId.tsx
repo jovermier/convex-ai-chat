@@ -94,7 +94,13 @@ function DocumentRoute() {
       lastServerContentRef.current = rawContent
       lastSavedContentRef.current = contentWithIds
     }
-  }, [selectedDocument?._id, selectedDocument?.content, selectedDocument?.title, initializedDocuments, updateDocument])
+  }, [
+    selectedDocument?._id,
+    selectedDocument?.content,
+    selectedDocument?.title,
+    initializedDocuments,
+    updateDocument,
+  ])
 
   const handleSelectDocument = (id: Id<"documents">) => {
     const doc = documents?.find(d => d._id === id)

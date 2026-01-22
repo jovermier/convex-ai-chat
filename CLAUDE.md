@@ -58,7 +58,7 @@ CONVEX_SITE_ORIGIN=<convex-site-url>
 CONVEX_DEPLOYMENT_URL=<convex-api-url>
 ```
 
-**`.env.convex.deployment`** - Deployment environment variables (managed by `scripts/init-convex-env.sh`)
+**`.env.convex.deployment`** - Deployment environment variables (managed by `scripts/generate-convex-env.sh`)
 
 ### Service URLs
 
@@ -282,19 +282,47 @@ ai_document_editor_app/
 │
 ├── docker-compose.convex.yml # Docker Compose for self-hosted Convex
 ├── scripts/
-│   ├── setup-convex.sh      # Convex setup script
-│   ├── init-convex-env.sh   # Initialize Convex environment variables
-│   ├── update-jwt-key.sh    # Update JWT keys for auth
-│   └── diagnostics.sh       # Diagnostic tools
+│   ├── generate-convex-env.sh   # Generate Convex environment files
+│   ├── load-convex-env.sh       # Load env vars to Convex Cloud
+│   ├── setup-convex.sh          # Convex setup script
+│   ├── update-jwt-key.sh        # Update JWT keys for auth
+│   └── diagnostics.sh           # Diagnostic tools
 ├── start.sh                 # Start script (PM2 + Docker)
 ├── stop.sh                  # Stop script
-├── components.json          # shadcn/ui configuration
-├── tailwind.config.js       # Tailwind CSS configuration
-├── tsconfig.json            # TypeScript project references
-├── vite.config.ts           # Vite configuration
-├── .env.local               # Local environment variables (gitignored)
-├── .env.convex.local        # Convex Docker configuration (gitignored)
-└── .env.convex.deployment   # Convex deployment env vars (gitignored)
+```
+
+## Environment Script Usage
+
+The project uses scripts for managing Convex environment variables:
+
+| Script | Purpose |
+|--------|---------|
+| `generate-convex-env.sh` | Generates `.env.convex.deployment` (JWT keys, user vars) and `.env.convex.local` (LLM vars) |
+| `load-convex-env.sh` | Loads vars from `.env.convex.deployment` to Convex deployment via `npx convex env set` |
+| `watch-convex-env.sh` | Watches `.env.convex.deployment` and auto-syncs to Convex deployment |
+
+**Note:** These scripts are run automatically by PM2 when `.env.convex.deployment` changes. You rarely need to run them manually.
+
+### Automatic Deployment (PM2)
+
+When running `pnpm start`, PM2 watches for changes and automatically:
+- Regenerates env files when `.env.convex.deployment` is modified
+- Deploys Convex functions when `convex/` source files change
+- Loads environment variables to the running deployment
+
+### Manual Usage (Rare)
+
+Manual script usage is only needed in special cases:
+
+```bash
+# Regenerate env files (JWT keys, etc.)
+bash scripts/generate-convex-env.sh
+
+# Sync env vars to running deployment
+bash scripts/load-convex-env.sh
+
+# Watch for changes and auto-sync (development)
+bash scripts/watch-convex-env.sh
 ```
 
 ## Database Schema
@@ -427,7 +455,7 @@ pnpm dev  # Runs both Vite frontend (port 3000) and Convex backend
 ### Self-Hosted Convex Specific
 
 - **ALWAYS** ensure `POSTGRES_URL` is set in `.env.convex.local` before starting
-- **ALWAYS** run `scripts/init-convex-env.sh` before deploying functions (sets JWT keys)
+- **ALWAYS** run `scripts/generate-convex-env.sh` before deploying functions (sets JWT keys)
 - **ALWAYS** use `npx convex deploy --yes` for self-hosted deployments
 - **NEVER** run `npx convex dev` for self-hosted - use `npx convex deploy` instead
 - **CONVEX_SITE_ORIGIN** must be set for auth to work (HTTP actions endpoint)
@@ -459,7 +487,7 @@ pnpm dev  # Runs both Vite frontend (port 3000) and Convex backend
 8. **Conditional Queries**: Use `skipToken` from `convex/react` instead of conditional `useQuery` calls
 
 ### Self-Hosted Convex Specific
-9. **JWT Keys**: Auth requires JWT keys to be set via `scripts/init-convex-env.sh` before deployment
+9. **JWT Keys**: Auth requires JWT keys to be set via `scripts/generate-convex-env.sh` before deployment
 10. **Admin Key Rotation**: Admin keys may expire - `start.sh` automatically regenerates if needed
 11. **Docker Volumes**: Convex data persists in Docker volume `convex-data`
 12. **POSTGRES_URL Format**: Should be `postgres://user:pass@host:port` (without database name - Convex appends `INSTANCE_NAME`)

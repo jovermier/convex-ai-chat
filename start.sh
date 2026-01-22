@@ -201,11 +201,11 @@ elif [ -z "$CI" ] && [ ! -d "$HOME/.cache/ms-playwright" ]; then
     echo "✅ Playwright browsers ready"
 fi
 
-# Initialize Convex deployment environment variables FIRST
+# Generate Convex deployment environment variables FIRST
 # These variables must be set BEFORE deployment or deployment will fail
 # Note: CONVEX_SITE_ORIGIN is required by auth.config.ts
-echo "🔐 Initializing Convex deployment environment variables..."
-bash scripts/init-convex-env.sh
+echo "🔐 Generating Convex deployment environment variables..."
+bash scripts/generate-convex-env.sh
 
 # Deploy Convex functions AFTER env vars are set
 # Note: npx convex deploy automatically reads .env.local (which has CONVEX_SITE_ORIGIN)

@@ -88,9 +88,10 @@ ai_document_editor_app/
 │
 ├── docker-compose.convex.yml # Docker Compose for self-hosted Convex
 ├── scripts/
-│   ├── setup-convex.sh      # Convex setup script
-│   ├── init-convex-env.sh   # Initialize Convex environment variables
-│   └── diagnostics.sh       # Diagnostic tools
+│   ├── generate-convex-env.sh   # Generate Convex environment files
+│   ├── load-convex-env.sh       # Load env vars to Convex Cloud
+│   ├── setup-convex.sh          # Convex setup script
+│   └── diagnostics.sh           # Diagnostic tools
 ├── .env.local               # Local environment variables (gitignored)
 ├── .env.convex.local        # Convex Docker configuration (gitignored)
 └── .env.convex.deployment   # Convex deployment env vars (gitignored)
@@ -156,6 +157,34 @@ CONVEX_DEPLOYMENT_URL=<convex-api-url>
 | `npx convex deploy --yes` | Deploy to self-hosted Convex |
 | `npx convex env set VAR val` | Set deployment environment variable |
 | `npx convex env inspect` | View deployment configuration |
+
+### Environment Scripts
+
+| Script | Purpose |
+|--------|---------|
+| `generate-convex-env.sh` | Generates `.env.convex.deployment` (JWT keys, user vars) and `.env.convex.local` (LLM vars) |
+| `load-convex-env.sh` | Loads vars from `.env.convex.deployment` to Convex deployment via `npx convex env set` |
+| `watch-convex-env.sh` | Watches `.env.convex.deployment` and auto-syncs to Convex deployment |
+
+**Note:** These scripts are run automatically by PM2 when `.env.convex.deployment` changes. Manual usage is rarely needed.
+
+**Automatic Deployment (PM2):**
+When running `pnpm start`, PM2 watches for changes and automatically:
+- Regenerates env files when `.env.convex.deployment` is modified
+- Deploys Convex functions when `convex/` source files change
+- Loads environment variables to the running deployment
+
+**Manual Usage (Rare):**
+```bash
+# Regenerate env files
+bash scripts/generate-convex-env.sh
+
+# Sync to running deployment
+bash scripts/load-convex-env.sh
+
+# Watch for auto-sync
+bash scripts/watch-convex-env.sh
+```
 
 ---
 

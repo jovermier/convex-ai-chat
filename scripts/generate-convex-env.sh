@@ -1,7 +1,8 @@
 #!/bin/bash
-# Initialize Convex deployment environment variables
-# For self-hosted: writes directly to .env.convex.local
-# For cloud: uses npx convex env set
+# Generate Convex environment files
+# Creates .env.convex.deployment (JWT vars for cloud/self-hosted)
+# and .env.convex.local (LLM vars for self-hosted Docker)
+# Run this script before loading variables to Convex
 
 set -e
 
@@ -9,7 +10,6 @@ DEPLOYMENT_ENV_FILE=".env.convex.deployment"
 CONTAINER_ENV_FILE=".env.convex.local"
 
 # Detect if running in self-hosted mode
-# Check multiple indicators since .env.local might not exist yet when this script runs
 SELF_HOSTED=false
 
 # Check environment variable
@@ -38,7 +38,7 @@ else
     echo "☁️  Cloud mode detected"
 fi
 
-echo "🔐 Initializing Convex deployment environment variables..."
+echo "🔐 Generating Convex environment files..."
 
 # Create deployment env file if it doesn't exist
 if [ ! -f "$DEPLOYMENT_ENV_FILE" ]; then
@@ -49,7 +49,7 @@ if [ ! -f "$DEPLOYMENT_ENV_FILE" ]; then
 # This file should be gitignored (contains secrets)
 
 # === AUTO-GENERATED VARIABLES (do not edit manually) ===
-# These are managed by scripts/init-convex-env.sh
+# These are managed by scripts/generate-convex-env.sh
 # Multi-line values are stored as base64 for safe env file storage
 JWT_PRIVATE_KEY_BASE64=""
 JWT_ISSUER=""
@@ -61,13 +61,12 @@ JWKS=""
 # OPENAI_API_KEY=sk-...
 # STRIPE_SECRET_KEY=sk_live_...
 # ANTHROPIC_API_KEY=sk-ant-...
-
 EOF
 fi
 
-# Source container env file to get CONVEX_SITE_ORIGIN
+# Source container env file to get CONVEX_SITE_ORIGIN (if it exists)
 set -a
-source "$CONTAINER_ENV_FILE"
+[ -f "$CONTAINER_ENV_FILE" ] && source "$CONTAINER_ENV_FILE"
 set +a
 
 # Check if JWT key file exists and has content
@@ -104,7 +103,6 @@ const crypto = require('crypto');
 const privateKey = process.env.JWT_PRIVATE_KEY;
 const publicKey = crypto.createPublicKey(privateKey);
 const jwk = publicKey.export({ format: 'jwk' });
-// JWKS format requires {\"keys\": [...]} wrapper
 const jwks = { keys: [{ use: 'sig', ...jwk }] };
 console.log(JSON.stringify(jwks));
 ")
@@ -131,22 +129,15 @@ done < "$DEPLOYMENT_ENV_FILE" > "$TEMP_FILE"
 
 mv "$TEMP_FILE" "$DEPLOYMENT_ENV_FILE"
 
-# Now set all variables
+# Generate/update container env file for self-hosted mode
 if [ "$SELF_HOSTED" = true ]; then
-    # Self-hosted mode: JWT vars go to .env.convex.deployment, LLM vars go to .env.convex.local
-    echo "📤 Setting deployment environment variables..."
+    echo "📝 Updating container env file $CONTAINER_ENV_FILE..."
 
-    # JWT vars are already in .env.convex.deployment (updated above)
-    echo "  ✅ JWT variables in $DEPLOYMENT_ENV_FILE"
-
-    # Create a temp file for LLM/OpenAI configuration only
     TEMP_FILE=$(mktemp)
 
     # Copy existing content from container env file, excluding LLM vars
     {
         # Add LLM/OpenAI configuration for agent.ts
-        # These are required for the AI agent functionality
-        # Use OPENAI_BASE_URL from environment if available, otherwise use fallback
         if [ -n "$OPENAI_BASE_URL" ]; then
             echo "OPENAI_BASE_URL=$OPENAI_BASE_URL"
         elif [ -n "$LITELLM_BASE_URL" ]; then
@@ -154,7 +145,6 @@ if [ "$SELF_HOSTED" = true ]; then
         else
             echo "OPENAI_BASE_URL=https://llm-gateway.hahomelabs.com/v1"
         fi
-        # Use LITELLM_APP_API_KEY from environment if available, otherwise use placeholder
         if [ -n "$LITELLM_APP_API_KEY" ]; then
             echo "OPENAI_API_KEY=$LITELLM_APP_API_KEY"
         else
@@ -173,98 +163,14 @@ if [ "$SELF_HOSTED" = true ]; then
 
     mv "$TEMP_FILE" "$CONTAINER_ENV_FILE"
     echo "  ✅ LLM variables in $CONTAINER_ENV_FILE"
-
-else
-    # Cloud mode: use npx convex env set
-    echo "📤 Setting deployment environment variables via npx convex env set..."
-
-    # Set JWT_PRIVATE_KEY (multi-line value, use stdin)
-    echo "  Setting JWT_PRIVATE_KEY..."
-    if ! echo "$JWT_PRIVATE_KEY" | npx convex env set JWT_PRIVATE_KEY; then
-        echo "❌ Failed to set JWT_PRIVATE_KEY"
-        exit 1
-    fi
-
-    # Set CONVEX_SITE_ORIGIN (required by auth.config.ts)
-    echo "  Setting CONVEX_SITE_ORIGIN..."
-    if ! npx convex env set CONVEX_SITE_ORIGIN "$CONVEX_SITE_ORIGIN"; then
-        echo "❌ Failed to set CONVEX_SITE_ORIGIN"
-        exit 1
-    fi
-
-    # Set JWT_ISSUER
-    echo "  Setting JWT_ISSUER..."
-    if ! npx convex env set JWT_ISSUER "$CONVEX_SITE_ORIGIN"; then
-        echo "❌ Failed to set JWT_ISSUER"
-        exit 1
-    fi
-
-    # Set JWKS (multi-line value, use stdin)
-    echo "  Setting JWKS..."
-    if ! echo "$JWKS" | npx convex env set JWKS; then
-        echo "❌ Failed to set JWKS"
-        exit 1
-    fi
-
-    # Now set user variables from the deployment env file
-    # Parse only the user section (after the USER VARIABLES comment)
-    USER_SECTION=false
-    while IFS= read -r line || [ -n "$line" ]; do
-        # Start processing after USER VARIABLES comment
-        if [[ "$line" == *"USER VARIABLES"* ]]; then
-            USER_SECTION=true
-            continue
-        fi
-
-        # Only process user variables
-        [ "$USER_SECTION" = false ] && continue
-
-        # Skip comments and empty lines
-        [[ "$line" == \#* ]] && continue
-        [ -z "$line" ] && continue
-
-        # Extract variable name and value
-        VAR_NAME="${line%%=*}"
-        VAR_VALUE="${line#*=}"
-
-        # Skip empty values
-        [ -z "$VAR_VALUE" ] && continue
-
-        echo "  Setting $VAR_NAME..."
-        npx convex env set "$VAR_NAME" "$VAR_VALUE"
-    done < "$DEPLOYMENT_ENV_FILE"
-
-    # Set OpenAI configuration from environment if not already set in deployment file
-    # These are required for the AI agent functionality
-    # Read from LITELLM_APP_API_KEY and LITELLM_BASE_URL environment variables
-    if ! grep -q "^OPENAI_API_KEY=" "$DEPLOYMENT_ENV_FILE" 2>/dev/null; then
-        if [ -n "$LITELLM_APP_API_KEY" ]; then
-            echo "  Setting OPENAI_API_KEY from LITELLM_APP_API_KEY..."
-            npx convex env set OPENAI_API_KEY "$LITELLM_APP_API_KEY"
-            # Update the deployment file for persistence
-            echo "OPENAI_API_KEY=$LITELLM_APP_API_KEY" >> "$DEPLOYMENT_ENV_FILE"
-        else
-            echo "  ⚠️  LITELLM_APP_API_KEY not set in environment, skipping OPENAI_API_KEY"
-        fi
-    fi
-
-    if ! grep -q "^OPENAI_BASE_URL=" "$DEPLOYMENT_ENV_FILE" 2>/dev/null; then
-        if [ -n "$LITELLM_BASE_URL" ]; then
-            echo "  Setting OPENAI_BASE_URL from LITELLM_BASE_URL..."
-            npx convex env set OPENAI_BASE_URL "$LITELLM_BASE_URL"
-            # Update the deployment file for persistence
-            echo "OPENAI_BASE_URL=$LITELLM_BASE_URL" >> "$DEPLOYMENT_ENV_FILE"
-        else
-            echo "  ⚠️  LITELLM_BASE_URL not set in environment, skipping OPENAI_BASE_URL"
-        fi
-    fi
 fi
 
-echo "✅ Convex deployment environment variables initialized"
+echo "✅ Environment files generated"
 if [ "$SELF_HOSTED" = true ]; then
     echo "   JWT variables in $DEPLOYMENT_ENV_FILE"
     echo "   LLM variables in $CONTAINER_ENV_FILE"
     echo "   Restart convex-backend container to apply: docker compose -f docker-compose.convex.yml restart convex-backend"
 else
-    echo "   Verify in dashboard: Environment Variables section"
+    echo "   JWT variables in $DEPLOYMENT_ENV_FILE"
+    echo "   Run 'bash scripts/load-convex-env.sh' to load variables to Convex Cloud"
 fi
